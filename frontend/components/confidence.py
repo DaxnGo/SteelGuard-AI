@@ -24,7 +24,10 @@ def render_confidence(confidence: float) -> None:
     """Render confidence without deriving any prediction decision."""
 
     percentage = format_confidence(confidence)
-    st.caption("Confidence")
+    st.markdown(
+        '<p class="result-field-label">Confidence</p>',
+        unsafe_allow_html=True,
+    )
     st.markdown(
         f'<div class="confidence-value" aria-label="Model confidence {percentage}">'
         f"{percentage}</div>",

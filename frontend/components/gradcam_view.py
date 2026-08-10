@@ -30,7 +30,10 @@ def find_local_gradcam(reference: str) -> Path | None:
 def render_gradcam_view(image: ValidatedImage, gradcam_reference: str) -> None:
     """Render original versus Grad-CAM, or an honest empty placeholder."""
 
-    st.markdown('<p class="section-eyebrow explanation-heading">AI EXPLANATION</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<h2 class="section-eyebrow explanation-heading">AI EXPLANATION</h2>',
+        unsafe_allow_html=True,
+    )
     original_column, gradcam_column = st.columns(2, gap="large")
 
     with original_column:
@@ -44,12 +47,12 @@ def render_gradcam_view(image: ValidatedImage, gradcam_reference: str) -> None:
 
     with gradcam_column:
         with st.container(border=True):
-            st.markdown("#### Grad-CAM Visualization")
+            st.markdown("#### AI Attention Map")
             gradcam_path = find_local_gradcam(gradcam_reference)
             if gradcam_path is not None:
                 st.image(
                     str(gradcam_path),
-                    caption="Backend-supplied Grad-CAM model explanation",
+                    caption="Backend-supplied Grad-CAM attention map",
                     width="stretch",
                 )
             else:
@@ -64,6 +67,6 @@ def render_gradcam_view(image: ValidatedImage, gradcam_reference: str) -> None:
                 )
 
     st.caption(
-        "Grad-CAM highlights image regions that influence a model prediction. "
-        "It is an explanation aid, not a segmentation mask or precise defect boundary."
+        "Highlighted regions indicate areas that contributed to the model prediction. "
+        "They do not show causality or a precise defect boundary."
     )

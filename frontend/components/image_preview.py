@@ -21,10 +21,17 @@ def render_image_preview(image: ValidatedImage) -> None:
     """Display the validated preview and non-inference image metadata."""
 
     with st.container(border=True):
-        st.markdown("#### Selected Image")
+        st.markdown(
+            '<div class="preview-heading">'
+            '<h4>Selected Image</h4>'
+            '<div class="ready-status" role="status">'
+            '<span aria-hidden="true"></span>Ready for inspection'
+            "</div></div>",
+            unsafe_allow_html=True,
+        )
         st.image(
             image.preview,
-            caption=f"Original steel surface image — {image.filename}",
+            caption=f"Inspection input — {image.filename}",
             width="stretch",
         )
 
@@ -38,5 +45,3 @@ def render_image_preview(image: ValidatedImage) -> None:
         with size_column:
             st.caption("File size")
             st.write(format_file_size(len(image.data)))
-
-        st.success("Ready for inspection")

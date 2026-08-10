@@ -19,12 +19,15 @@ def render_recommendation(recommendation: str) -> None:
     if css_class is None:
         raise ValueError("Unsupported recommendation value.")
 
-    st.caption("Quality Recommendation")
     st.markdown(
-        '<div class="recommendation-badge '
+        '<div class="recommendation-panel '
         f'{css_class}" role="status" aria-label="Quality recommendation: '
-        f'{recommendation}"><span class="recommendation-dot"></span>'
-        f"<span>{recommendation}</span></div>",
+        f'{recommendation}">'
+        '<span class="recommendation-label">Quality Recommendation</span>'
+        '<span class="recommendation-value">'
+        '<span class="recommendation-dot" aria-hidden="true"></span>'
+        f"{recommendation}</span>"
+        '<span class="recommendation-note">AI-assisted inspection outcome</span>'
+        "</div>",
         unsafe_allow_html=True,
     )
-    st.caption("AI-assisted recommendation")
