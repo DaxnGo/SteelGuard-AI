@@ -1,26 +1,25 @@
-:root {
-  --steelguard-background: #f8fafc;
-  --steelguard-surface: #ffffff;
-  --steelguard-primary: #1e293b;
-  --steelguard-secondary: #475569;
-  --steelguard-muted: #64748b;
-  --steelguard-border: #e2e8f0;
-  --steelguard-border-strong: #cbd5e1;
-  --steelguard-accent: #2563eb;
-  --steelguard-accent-dark: #1d4ed8;
-  --steelguard-accent-soft: #eff6ff;
-  --steelguard-accept: #16a34a;
-  --steelguard-accept-text: #166534;
-  --steelguard-accept-soft: #f0fdf4;
-  --steelguard-rework: #d97706;
-  --steelguard-rework-text: #92400e;
-  --steelguard-rework-soft: #fffbeb;
-  --steelguard-reject: #dc2626;
-  --steelguard-reject-text: #991b1b;
-  --steelguard-reject-soft: #fef2f2;
-}
-
 .stApp {
+  /* Streamlit updates color-scheme when the user changes appearance. */
+  --steelguard-background: light-dark(#f8fafc, #0b1220);
+  --steelguard-surface: light-dark(#ffffff, #111827);
+  --steelguard-primary: light-dark(#1e293b, #f8fafc);
+  --steelguard-secondary: light-dark(#475569, #cbd5e1);
+  --steelguard-muted: light-dark(#64748b, #94a3b8);
+  --steelguard-border: light-dark(#e2e8f0, #273449);
+  --steelguard-border-strong: light-dark(#cbd5e1, #475569);
+  --steelguard-accent: #2563eb;
+  --steelguard-accent-dark: light-dark(#1d4ed8, #93c5fd);
+  --steelguard-accent-soft: light-dark(#eff6ff, #172554);
+  --steelguard-focus: light-dark(#93c5fd, #60a5fa);
+  --steelguard-accept: light-dark(#16a34a, #4ade80);
+  --steelguard-accept-text: light-dark(#166534, #86efac);
+  --steelguard-accept-soft: light-dark(#f0fdf4, #052e16);
+  --steelguard-rework: light-dark(#d97706, #f59e0b);
+  --steelguard-rework-text: light-dark(#92400e, #fbbf24);
+  --steelguard-rework-soft: light-dark(#fffbeb, #451a03);
+  --steelguard-reject: light-dark(#dc2626, #f87171);
+  --steelguard-reject-text: light-dark(#991b1b, #fca5a5);
+  --steelguard-reject-soft: light-dark(#fef2f2, #450a0a);
   background: var(--steelguard-background);
   color: var(--steelguard-primary);
 }
@@ -73,7 +72,7 @@ h1 {
   gap: 0.55rem;
   margin-bottom: 3rem;
   padding: 0.45rem 0.65rem;
-  border: 1px solid #bfdbfe;
+  border: 1px solid light-dark(#bfdbfe, #1e3a8a);
   border-radius: 0.45rem;
   background: var(--steelguard-accent-soft);
   color: var(--steelguard-secondary);
@@ -97,7 +96,7 @@ h1 {
 .system-status-separator {
   width: 1px;
   height: 0.85rem;
-  background: #bfdbfe;
+  background: light-dark(#bfdbfe, #1e3a8a);
 }
 
 .section-eyebrow {
@@ -145,14 +144,14 @@ h1 {
 
 [data-testid="stFileUploaderDropzone"]:hover {
   border-color: var(--steelguard-accent);
-  background: #f8fbff;
+  background: light-dark(#f8fbff, #172033);
 }
 
 [data-testid="stVerticalBlockBorderWrapper"] {
   border-color: var(--steelguard-border);
   border-radius: 0.75rem;
   background: var(--steelguard-surface);
-  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+  box-shadow: 0 1px 2px light-dark(rgb(15 23 42 / 4%), rgb(0 0 0 / 24%));
 }
 
 .preview-heading {
@@ -208,7 +207,7 @@ h1 {
 
 .stButton > button:focus-visible,
 [data-testid="stFileUploaderDropzone"] button:focus-visible {
-  outline: 3px solid #93c5fd;
+  outline: 3px solid var(--steelguard-focus);
   outline-offset: 2px;
 }
 
@@ -290,21 +289,21 @@ h1 {
 }
 
 .recommendation--accept {
-  border-color: #bbf7d0;
+  border-color: light-dark(#bbf7d0, #166534);
   border-left-color: var(--steelguard-accept);
   background: var(--steelguard-accept-soft);
   color: var(--steelguard-accept-text);
 }
 
 .recommendation--rework {
-  border-color: #fde68a;
+  border-color: light-dark(#fde68a, #92400e);
   border-left-color: var(--steelguard-rework);
   background: var(--steelguard-rework-soft);
   color: var(--steelguard-rework-text);
 }
 
 .recommendation--reject {
-  border-color: #fecaca;
+  border-color: light-dark(#fecaca, #991b1b);
   border-left-color: var(--steelguard-reject);
   background: var(--steelguard-reject-soft);
   color: var(--steelguard-reject-text);
