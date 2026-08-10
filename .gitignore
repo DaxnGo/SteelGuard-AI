@@ -21,6 +21,8 @@ env/
 .env.*
 !.env.example
 .streamlit/secrets.toml
+.agents/
+.claude/
 
 # Editors and operating systems
 .idea/
