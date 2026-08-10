@@ -9,11 +9,12 @@ WORKDIR /app
 RUN addgroup --system steelguard \
     && adduser --system --ingroup steelguard steelguard
 
-COPY requirements.txt ./requirements.txt
+COPY frontend/requirements.txt ./requirements.txt
 RUN python -m pip install --upgrade pip \
     && python -m pip install -r requirements.txt
 
-COPY --chown=steelguard:steelguard . .
+COPY --chown=steelguard:steelguard frontend/ .
+COPY --chown=steelguard:steelguard mock/ /mock/
 
 USER steelguard
 

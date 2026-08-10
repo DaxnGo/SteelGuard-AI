@@ -1,11 +1,16 @@
 services:
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
     ports:
       - "8501:8501"
     environment:
       STREAMLIT_SERVER_HEADLESS: "true"
       STREAMLIT_BROWSER_GATHER_USAGE_STATS: "false"
+      STEELGUARD_USE_MOCK_API: "${STEELGUARD_USE_MOCK_API:-true}"
+      STEELGUARD_API_BASE_URL: "${STEELGUARD_API_BASE_URL:-}"
+      STEELGUARD_API_CONNECT_TIMEOUT_SECONDS: "${STEELGUARD_API_CONNECT_TIMEOUT_SECONDS:-}"
+      STEELGUARD_API_READ_TIMEOUT_SECONDS: "${STEELGUARD_API_READ_TIMEOUT_SECONDS:-}"
+      STEELGUARD_MOCK_DELAY_SECONDS: "${STEELGUARD_MOCK_DELAY_SECONDS:-0.6}"
     restart: unless-stopped
