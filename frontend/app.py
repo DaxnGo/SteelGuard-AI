@@ -141,7 +141,7 @@ def run_mock_analysis(image: ValidatedImage) -> None:
 
 
 def clear_interaction(*, advance_uploader: bool = True) -> None:
-    """Clear all request-specific state without creating inspection history."""
+    """Clear request-specific state without retaining a prior result."""
 
     st.session_state[STATE_KEY] = EMPTY
     st.session_state[IMAGE_KEY] = None
