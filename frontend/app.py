@@ -12,7 +12,11 @@ from components.gradcam_view import render_gradcam_view
 from components.image_preview import render_image_preview
 from components.result_card import render_result_card
 from components.upload_section import render_upload_section
-from services.api_client import PredictionServiceError, predict_image
+from services.api_client import (
+    PredictionServiceError,
+    get_prediction_source_label,
+    predict_image,
+)
 from utils.image_validator import (
     ImageValidationError,
     ValidatedImage,
@@ -64,14 +68,25 @@ def initialize_session_state() -> None:
 def render_header() -> None:
     """Render project-only branding and MVP context."""
 
-    st.markdown('<p class="brand-kicker">AI-ASSISTED QUALITY INSPECTION</p>', unsafe_allow_html=True)
+    source_label = get_prediction_source_label()
+    st.markdown(
+        '<p class="brand-kicker">INDUSTRIAL VISION INSPECTION</p>',
+        unsafe_allow_html=True,
+    )
     st.title("SteelGuard AI")
     st.markdown(
         '<p class="hero-subtitle">Intelligent Steel Surface Defect Detection</p>',
         unsafe_allow_html=True,
     )
     st.markdown(
-        '<div class="mode-badge"><span></span> FRONTEND MVP · MOCK AI MODE</div>',
+        '<div class="system-status" role="status" '
+        f'aria-label="System status: {source_label.lower()}, '
+        'single-image inspection">'
+        '<span class="system-status-dot" aria-hidden="true"></span>'
+        f"<strong>{source_label}</strong>"
+        '<span class="system-status-separator" aria-hidden="true"></span>'
+        '<span>Single-image inspection</span>'
+        "</div>",
         unsafe_allow_html=True,
     )
 
@@ -115,12 +130,22 @@ def synchronize_selection(uploaded_file: Any | None) -> None:
         st.session_state[STATE_KEY] = ERROR
 
 
-def run_mock_analysis(image: ValidatedImage) -> None:
-    """Run one mock prediction and move to SUCCESS or ERROR."""
+def begin_analysis() -> None:
+    """Enter ANALYZING before the next rerun invokes the mock service."""
+
+    image = st.session_state[IMAGE_KEY]
+    if not isinstance(image, ValidatedImage):
+        st.session_state[ERROR_KEY] = "Select a valid image before starting inspection."
+        st.session_state[STATE_KEY] = ERROR
+        return
 
     st.session_state[STATE_KEY] = ANALYZING
     st.session_state[PREDICTION_KEY] = None
     st.session_state[ERROR_KEY] = None
+
+
+def complete_analysis(image: ValidatedImage) -> None:
+    """Run exactly one mock prediction and move to SUCCESS or ERROR."""
 
     try:
         with st.spinner("Analyzing steel surface..."):
@@ -172,8 +197,12 @@ def render_error_state() -> None:
     if image is not None:
         retry_column, reset_column = st.columns(2)
         with retry_column:
-            if st.button("Try Again", type="primary", width="stretch"):
-                run_mock_analysis(image)
+            st.button(
+                "Try Again",
+                type="primary",
+                width="stretch",
+                on_click=begin_analysis,
+            )
         with reset_column:
             if st.button("Choose Another Image", width="stretch"):
                 reset_and_rerun()
@@ -212,6 +241,19 @@ def render_inspection_interface() -> None:
         return
 
     uploader_key = f"steel-image-uploader-{st.session_state[UPLOADER_VERSION_KEY]}"
+
+    if state == ANALYZING:
+        render_upload_section(uploader_key, disabled=True)
+        image = st.session_state[IMAGE_KEY]
+        if not isinstance(image, ValidatedImage):
+            st.session_state[ERROR_KEY] = "The selected image is no longer available."
+            st.session_state[STATE_KEY] = ERROR
+            st.rerun()
+
+        render_image_preview(image)
+        complete_analysis(image)
+        return
+
     uploaded_file = render_upload_section(uploader_key)
     synchronize_selection(uploaded_file)
 
@@ -222,13 +264,14 @@ def render_inspection_interface() -> None:
         render_image_preview(image)
 
     if state == IMAGE_SELECTED and isinstance(image, ValidatedImage):
-        if st.button("Analyze Surface", type="primary", width="stretch"):
-            run_mock_analysis(image)
+        st.button(
+            "Analyze Surface",
+            type="primary",
+            width="stretch",
+            on_click=begin_analysis,
+        )
     elif state == ERROR:
         render_error_state()
-    elif state == ANALYZING:
-        st.info("Analyzing steel surface...")
-        st.caption("Running AI inference")
 
 
 def main() -> None:
