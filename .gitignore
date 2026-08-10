@@ -1,0 +1,45 @@
+# Python bytecode and tooling caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Packaging outputs
+build/
+dist/
+*.egg-info/
+
+# Virtual environments and local configuration
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Runtime data and generated artifacts
+uploads/
+outputs/
+generated/
+*.log
+
+# Large model artifacts belong in managed artifact storage
+*.ckpt
+*.h5
+*.keras
+*.onnx
+*.pt
+*.pth
+*.safetensors

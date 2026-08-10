@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "prediction": {
+    "class_name": "Scratches",
+    "confidence": 0.942,
+    "recommendation": "REWORK",
+    "gradcam_image": "mock_gradcam.png"
+  }
+}
