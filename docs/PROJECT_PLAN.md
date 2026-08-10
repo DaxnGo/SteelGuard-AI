@@ -305,7 +305,7 @@ flowchart LR
 | --- | --- | --- |
 | Language/runtime | Python 3.11 | Current frontend container baseline; backend and AI environments must remain compatible |
 | Frontend | Streamlit | Current dependency and implemented single-image operator interface |
-| Frontend HTTP and imaging | Requests and Pillow | Current dependencies for synchronous API calls and usability validation |
+| Frontend HTTP and imaging | Requests and Pillow | Configurable mock/real API boundary and current image usability validation; live FastAPI remains disconnected |
 | Backend | FastAPI | Planned contract-defined inference API and validation boundary |
 | AI models | CNN, MobileNetV2, EfficientNetB0, ResNet50 | Candidate architectures; final selection is D-02 |
 | AI framework | To be confirmed | D-02; framework tensors must remain behind the adapter |

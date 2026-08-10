@@ -2,9 +2,9 @@
 
 > **Project:** SteelGuard AI — Intelligent Steel Surface Defect Detection for Smart Manufacturing
 >
-> **Frontend:** Python, Streamlit, Requests or HTTPX, Pillow, and custom CSS
+> **Frontend:** Python, Streamlit, Requests, Pillow, and custom CSS
 >
-> **Repository status:** The mock-driven preliminary frontend MVP is implemented. Live FastAPI integration remains planned.
+> **Repository status:** The mock-driven preliminary frontend MVP and configurable API client boundary are implemented. Live FastAPI integration remains planned.
 
 The frontend is a presentation client. It owns user interaction, current-page
 state, HTTP orchestration, and display of backend AI results. It does not own
@@ -417,9 +417,9 @@ The HTTP source of truth is [`API_CONTRACT.md`](API_CONTRACT.md).
 | Requirement | Priority |
 | --- | --- |
 | Read the base URL from `STEELGUARD_API_BASE_URL`. | **MUST HAVE** |
-| Default to `http://localhost:8000` for direct local development. | **MUST HAVE** |
+| Require an environment-provided base URL when real mode is explicitly enabled; do not embed a deployment URL. | **MUST HAVE** |
 | Keep HTTP code inside `services/api_client.py`. | **MUST HAVE** |
-| Use Requests as the current repository default synchronous client. | **MUST HAVE** |
+| Use Requests as the centralized synchronous transport behind `predict_image()`. | **MUST HAVE** |
 | HTTPX may replace Requests behind the same client interface if dependencies and tests are deliberately updated; do not maintain two parallel implementations. | **OPTIONAL** |
 | Make backend requests directly from display components. | **OUT OF SCOPE** |
 
@@ -472,7 +472,7 @@ PredictionResult {
 | Inject or stub the API client in tests rather than embedding prediction constants in UI components. | **MUST HAVE** |
 | Keep fixture keys, types, labels, and recommendation values synchronized with the API contract. | **MUST HAVE** |
 | Add invalid-response fixtures for missing fields, unsupported enums, invalid confidence, and invalid Grad-CAM representations. | **SHOULD HAVE** |
-| Make any interactive local mock mode explicit, disabled by default, and visibly marked “Mock data.” | **OPTIONAL** |
+| Keep the current competition frontend in explicit mock mode until the backend integration checklist is approved. | **MUST HAVE** |
 | Update the API contract, fixture, response validator, tests, and development log together when the contract changes. | **MUST HAVE** |
 | Fall back to mock data after a live timeout, server error, or invalid response. | **OUT OF SCOPE** |
 | Present mock output as a live model result during the competition demonstration. | **OUT OF SCOPE** |
@@ -607,8 +607,8 @@ The frontend is done when:
 
 ### API request and response
 
-- [ ] **MUST HAVE** — The base URL comes from `STEELGUARD_API_BASE_URL` and the
-  documented local default works.
+- [ ] **MUST HAVE** — Real mode requires `STEELGUARD_API_BASE_URL`; no
+  deployment URL is hard-coded in the frontend.
 - [ ] **MUST HAVE** — The request uses `POST /predict`, one multipart `file`
   field, original bytes, filename, and supported media type.
 - [ ] **MUST HAVE** — Connection and read timeouts use the confirmed shared

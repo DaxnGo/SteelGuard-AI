@@ -25,6 +25,8 @@ backend.
 
 - The Streamlit frontend completes the one-image workflow with explicit mock
   AI output.
+- The prediction client defaults to mock mode and includes a configuration-
+  gated, mocked-test-covered Requests adapter for future `POST /predict` use.
 - Frontend components, Pillow validation, response validation, errors, retry,
   and reset are implemented and covered by automated tests.
 - The FastAPI backend and deep-learning implementation have not been created.
@@ -81,6 +83,7 @@ See these documents before implementing a subsystem:
 | [Features](docs/FEATURES.md) | MVP capabilities and explicit exclusions |
 | [Architecture](docs/ARCHITECTURE.md) | Service boundaries and end-to-end data flow |
 | [API contract](docs/API_CONTRACT.md) | Stable prediction request and response contract |
+| [Frontend API readiness](docs/FRONTEND_API_INTEGRATION.md) | Mode configuration, error mapping, and backend activation checklist |
 | [UI flow](docs/UI_FLOW.md) | Single-image interaction states and transitions |
 | [Frontend specification](docs/FRONTEND_SPEC.md) | Streamlit component responsibilities and constraints |
 | [Development log](docs/DEVELOPMENT_LOG.md) | Chronological record and entry template |
