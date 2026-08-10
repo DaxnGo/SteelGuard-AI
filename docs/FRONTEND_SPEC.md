@@ -4,7 +4,7 @@
 >
 > **Frontend:** Python, Streamlit, Requests or HTTPX, Pillow, and custom CSS
 >
-> **Repository status:** The current frontend is a readiness page with placeholder modules. This document specifies the planned preliminary MVP.
+> **Repository status:** The mock-driven preliminary frontend MVP is implemented. Live FastAPI integration remains planned.
 
 The frontend is a presentation client. It owns user interaction, current-page
 state, HTTP orchestration, and display of backend AI results. It does not own
@@ -16,7 +16,6 @@ The complete preliminary frontend workflow is:
 ```text
 EMPTY
 → IMAGE SELECTED
-→ READY
 → ANALYZING
 → SUCCESS or ERROR
 ```
@@ -47,7 +46,7 @@ row or item carries its applicable label.
 | **MUST HAVE** | Render one focused Streamlit page for one-image inspection. |
 | **MUST HAVE** | Accept one JPG, JPEG, or PNG file and provide early client-side validation. |
 | **MUST HAVE** | Preview the selected image without altering the original bytes submitted to the backend. |
-| **MUST HAVE** | Manage the `EMPTY`, `IMAGE_SELECTED`, `READY`, `ANALYZING`, `SUCCESS`, and `ERROR` states for the current interaction. |
+| **MUST HAVE** | Manage the `EMPTY`, `IMAGE_SELECTED`, `ANALYZING`, `SUCCESS`, and `ERROR` states for the current interaction. |
 | **MUST HAVE** | Submit exactly one image in one request to the configured backend prediction endpoint. |
 | **MUST HAVE** | Validate the success response and display the backend-supplied defect class, confidence, Grad-CAM, and recommendation. |
 | **MUST HAVE** | Normalize recoverable frontend and API failures into concise, user-safe messages. |
@@ -118,11 +117,11 @@ validation logic in `app.py`.
 ```mermaid
 stateDiagram-v2
     [*] --> EMPTY
-    EMPTY --> IMAGE_SELECTED: choose one file
-    IMAGE_SELECTED --> READY: local validation passes
-    IMAGE_SELECTED --> ERROR: local validation fails
-    READY --> IMAGE_SELECTED: replace file
-    READY --> ANALYZING: select Analyze
+    EMPTY --> IMAGE_SELECTED: choose one valid file
+    EMPTY --> ERROR: local validation fails
+    IMAGE_SELECTED --> IMAGE_SELECTED: replace with valid file
+    IMAGE_SELECTED --> ERROR: replacement validation fails
+    IMAGE_SELECTED --> ANALYZING: select Analyze
     ANALYZING --> SUCCESS: complete valid response
     ANALYZING --> ERROR: request or response failure
     ERROR --> ANALYZING: retry valid selection
@@ -134,8 +133,7 @@ stateDiagram-v2
 | State | Required data | Visible UI | Permitted actions | Priority |
 | --- | --- | --- | --- | --- |
 | `EMPTY` | No selected image, result, or error | Header, instructions, empty uploader | Select one file | **MUST HAVE** |
-| `IMAGE_SELECTED` | Original bytes and supplied file metadata | Selection acknowledged while validation runs | Wait for validation or replace selection | **MUST HAVE** |
-| `READY` | Original bytes, validated preview, safe metadata | Preview and enabled Analyze button | Analyze, replace, or remove image | **MUST HAVE** |
+| `IMAGE_SELECTED` | Original bytes, validated preview, and safe metadata | Preview and enabled Analyze button | Analyze, replace, or remove image | **MUST HAVE** |
 | `ANALYZING` | Valid selection and request-in-progress state | Preview, disabled duplicate actions, loading status | Wait only | **MUST HAVE** |
 | `SUCCESS` | Complete validated prediction and displayable Grad-CAM representation | Preview, all result fields, reset action | Analyze another image | **MUST HAVE** |
 | `ERROR` | Normalized error and recovery context | Concise error, preview when still valid, recovery actions | Retry, replace, or reset as applicable | **MUST HAVE** |
@@ -149,7 +147,7 @@ not be allowed to contradict it.
 | State rule | Priority |
 | --- | --- |
 | A newly selected file clears any previous result and error before validation. | **MUST HAVE** |
-| `IMAGE_SELECTED` is a short-lived validation state and cannot submit an API request. | **MUST HAVE** |
+| `IMAGE_SELECTED` is entered only after local validation passes and is the only normal state that enables Analyze. | **MUST HAVE** |
 | `SUCCESS` is entered only when all required response fields pass validation. | **MUST HAVE** |
 | A retryable API error preserves the valid selection; an invalid-file error requires replacement or reset. | **MUST HAVE** |
 | Images and results from earlier interactions are not retained after reset. | **MUST HAVE** |
@@ -190,7 +188,7 @@ validation.
 
 | Requirement | Priority |
 | --- | --- |
-| Decode the selected bytes with Pillow before entering `READY`. | **MUST HAVE** |
+| Decode the selected bytes with Pillow before entering `IMAGE_SELECTED`. | **MUST HAVE** |
 | Apply EXIF orientation correction to the preview representation where applicable. | **MUST HAVE** |
 | Keep original upload bytes unchanged for the API request. | **MUST HAVE** |
 | Fit the preview within its container without stretching or changing aspect ratio. | **MUST HAVE** |
@@ -212,7 +210,7 @@ unless the backend contract is deliberately changed.
 | --- | --- |
 | Show one primary button labeled **Analyze image**. | **MUST HAVE** |
 | Disable the button in `EMPTY`, `IMAGE_SELECTED`, and `ANALYZING`. | **MUST HAVE** |
-| Enable the button only in `READY` and for a retryable `ERROR` with a still-valid selection. | **MUST HAVE** |
+| Enable the button only in `IMAGE_SELECTED` and for a retryable `ERROR` with a still-valid selection. | **MUST HAVE** |
 | One deliberate button activation creates exactly one prediction request. | **MUST HAVE** |
 | Transition to `ANALYZING` before invoking the API client so a rerun cannot create a duplicate submission. | **MUST HAVE** |
 | Clear an earlier error when a deliberate retry starts. | **MUST HAVE** |
@@ -536,8 +534,8 @@ The frontend is done when:
 
 - **MUST HAVE** — Every MUST HAVE requirement in this specification is
   implemented and verified.
-- **MUST HAVE** — The workflow follows `EMPTY → IMAGE_SELECTED → READY →
-  ANALYZING → SUCCESS or ERROR` without contradictory state.
+- **MUST HAVE** — The workflow follows `EMPTY → IMAGE_SELECTED → ANALYZING →
+  SUCCESS or ERROR` without contradictory state.
 - **MUST HAVE** — JPG, JPEG, and PNG inputs can be selected one at a time,
   validated, previewed, and submitted.
 - **MUST HAVE** — One Analyze activation produces one request containing one
@@ -581,7 +579,7 @@ The frontend is done when:
   error.
 - [ ] **MUST HAVE** — A new selection enters `IMAGE_SELECTED` and clears prior
   output.
-- [ ] **MUST HAVE** — Valid local decoding enters `READY`; invalid decoding
+- [ ] **MUST HAVE** — Valid local decoding enters `IMAGE_SELECTED`; invalid decoding
   enters `ERROR` and never enables Analyze.
 - [ ] **MUST HAVE** — Analyze enters `ANALYZING` before the client call and
   cannot be double-submitted.

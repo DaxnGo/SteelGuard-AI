@@ -4,7 +4,7 @@
 >
 > **Document status:** Approved direction; preliminary MVP implementation is planned
 >
-> **Repository status:** Foundation complete; the inference workflow is not yet implemented
+> **Repository status:** Frontend mock MVP complete; backend and AI implementation remain planned
 
 The preliminary competition MVP has one non-negotiable product boundary:
 
@@ -21,17 +21,19 @@ classify a defect in one uploaded steel image, report the model's confidence,
 show a Grad-CAM explanation, and present an `ACCEPT`, `REWORK`, or `REJECT`
 recommendation to an operator.
 
-The repository is currently a foundation-stage monorepo. It contains:
+The repository now contains a foundation plus a working mock-driven frontend:
 
-- a runnable Streamlit readiness page;
-- placeholder frontend components, image validation, and API client modules;
+- a runnable one-page Streamlit inspection workflow;
+- implemented upload, Pillow validation, preview, loading, result, error,
+  retry, reset, and responsive presentation components;
+- a validated mock prediction service behind the future API client boundary;
 - documented FastAPI and AI subsystem boundaries, without their application
   code;
 - a stable prediction API contract and contract-shaped mock response;
 - a frontend Dockerfile and frontend-only Docker Compose service; and
 - product, architecture, UI, and development documentation.
 
-The upload workflow, backend service, trained model, inference adapter, and
+The backend service, trained model, inference adapter, live HTTP call, and
 Grad-CAM generation are planned work. The preliminary MVP is successful when
 an operator can select one supported image, run one inference, view all four
 backend-supplied outputs, recover from errors, and reset the interface for a
@@ -261,9 +263,9 @@ The end-to-end interaction is:
    recoverable error.
 10. **Analyze another image** returns the application to a clean Idle state.
 
-The UI state sequence is `Idle → Ready → Analyzing → Success` or
-`Idle → Ready → Analyzing → Error`. An error can return to Ready for a retry;
-Success or an explicit reset returns to Idle.
+The UI state sequence is `EMPTY → IMAGE_SELECTED → ANALYZING → SUCCESS` or
+`EMPTY → IMAGE_SELECTED → ANALYZING → ERROR`. A service error can return to
+`IMAGE_SELECTED` for a retry; success or an explicit reset returns to `EMPTY`.
 
 ## 11. System Architecture
 
@@ -292,7 +294,7 @@ flowchart LR
 
 | Subsystem | Current repository state | Preliminary MVP target |
 | --- | --- | --- |
-| Frontend | Readiness page and placeholder modules | Complete one-image UI state flow and API integration |
+| Frontend | Complete mock-driven one-image state flow | Replace the mock service with the contract-defined live API call |
 | Backend | Responsibility documentation only | Runnable FastAPI prediction service |
 | AI | Responsibility documentation only | Reproducible trained artifact and single-image adapter |
 | Containers | Frontend Dockerfile and frontend-only Compose | Healthy frontend and backend services with model access |
@@ -302,14 +304,14 @@ flowchart LR
 | Layer | Technology | Status and purpose |
 | --- | --- | --- |
 | Language/runtime | Python 3.11 | Current frontend container baseline; backend and AI environments must remain compatible |
-| Frontend | Streamlit | Current dependency; planned single-image operator interface |
+| Frontend | Streamlit | Current dependency and implemented single-image operator interface |
 | Frontend HTTP and imaging | Requests and Pillow | Current dependencies for synchronous API calls and usability validation |
 | Backend | FastAPI | Planned contract-defined inference API and validation boundary |
 | AI models | CNN, MobileNetV2, EfficientNetB0, ResNet50 | Candidate architectures; final selection is D-02 |
 | AI framework | To be confirmed | D-02; framework tensors must remain behind the adapter |
 | Dataset | NEU Surface Defect Database | Supplied six-class project dataset; governance and preparation details are D-01 |
 | Explainability | Grad-CAM | Planned explanation for the same classification inference |
-| Testing | pytest and framework-appropriate test utilities | Planned automated unit, contract, integration, and AI checks |
+| Testing | Python unittest and Streamlit AppTest | Current frontend unit, contract, state, and workflow checks; backend and AI checks remain planned |
 | Containers | Docker and Docker Compose | Current frontend container foundation; target local two-service startup |
 | Source control | Git with Conventional Commits | Current repository history and planned team workflow |
 
@@ -320,7 +322,7 @@ hardware profile are part of D-06.
 
 The Streamlit frontend must:
 
-- compose the Idle, Ready, Analyzing, Success, and Error states in `app.py`;
+- compose the EMPTY, IMAGE_SELECTED, ANALYZING, SUCCESS, and ERROR states in `app.py`;
 - accept exactly one JPEG or PNG selection and provide concise validation
   feedback;
 - preview a decodable image without modifying the original bytes sent to the
@@ -668,7 +670,7 @@ accepted, but end-to-end integration depends on all three boundaries.
 | Phase | Status | Primary owner | Deliverable | Exit criteria |
 | --- | --- | --- | --- | --- |
 | 0. Foundation | Complete | Shared | Monorepo structure, readiness page, docs, mock response, frontend container | Current Streamlit page starts; repository boundaries and API contract are documented |
-| 1. Frontend MVP | Planned | Frontend | Upload, preview, Analyze, loading/error/success, result, Grad-CAM, retry, reset | Full state flow passes against the approved fixture; no AI output is derived in the frontend |
+| 1. Frontend MVP | Complete | Frontend | Upload, preview, Analyze, loading/error/success, mock result, Grad-CAM placeholder, retry, reset | Full state flow passes against the approved fixture; no AI output is derived in the frontend |
 | 2. Backend API | Planned | Backend | FastAPI request validation, prediction endpoint, adapter test double, Grad-CAM transport, errors, container | API and negative-path tests conform to the API contract |
 | 3. AI baseline and selection | Planned | AI | Reproducible dataset protocol, candidate comparison, selected artifact, Grad-CAM, adapter | D-01 through D-03 are resolved; artifact evidence and adapter tests are complete |
 | 4. Integration | Planned | Shared | Streamlit → FastAPI → real model path and two-service Compose | End-to-end acceptance scenarios pass without fixture fallback or manual code changes |

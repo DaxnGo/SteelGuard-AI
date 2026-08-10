@@ -5,6 +5,11 @@
 SteelGuard AI uses a deliberately small three-boundary architecture for the
 preliminary MVP.
 
+The implemented frontend phase preserves this target boundary by routing
+`predict_image(...)` through `services/api_client.py`, which currently reads a
+validated mock response. Replacing that mock implementation with
+`POST /predict` must not require presentation-component changes.
+
 ```mermaid
 flowchart LR
     U[User] -->|one JPEG or PNG| F[Streamlit frontend]
@@ -61,6 +66,10 @@ capabilities for the preliminary MVP.
 6. FastAPI packages the artifact using the confirmed transport and returns the
    JSON response.
 7. Streamlit renders the returned values and provides a reset action.
+
+Until the backend exists, steps 3–6 are represented by the mock prediction
+service. It returns the same logical response shape, does not perform AI or
+recommendation logic, and is visibly identified as mock mode in the UI.
 
 No database is required in this flow. User images, results, and Grad-CAM output
 must not become inspection history. If the confirmed transport uses temporary

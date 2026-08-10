@@ -7,33 +7,34 @@ should keep the primary action and current state obvious at every step.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Idle
-    Idle --> Ready: select one valid image
-    Ready --> Idle: remove or replace selection
-    Ready --> Analyzing: select Analyze
-    Analyzing --> Success: valid backend response
-    Analyzing --> Error: request or response failure
-    Error --> Ready: retry with current image
-    Error --> Idle: choose another image
-    Success --> Idle: Analyze another image
+    [*] --> EMPTY
+    EMPTY --> IMAGE_SELECTED: select one valid image
+    EMPTY --> ERROR: invalid image
+    IMAGE_SELECTED --> EMPTY: remove selection
+    IMAGE_SELECTED --> ANALYZING: select Analyze
+    ANALYZING --> SUCCESS: valid prediction response
+    ANALYZING --> ERROR: service or response failure
+    ERROR --> IMAGE_SELECTED: retry with valid image
+    ERROR --> EMPTY: choose another image
+    SUCCESS --> EMPTY: Analyze another image
 ```
 
 ## State behavior
 
 | State | Visible content | Available actions |
 | --- | --- | --- |
-| Idle | Project heading, concise instruction, one-image uploader | Select one JPEG or PNG |
-| Ready | Selected image preview and enabled Analyze button | Analyze, replace, or remove image |
-| Analyzing | Preview, progress indicator, disabled duplicate submission | Wait for completion |
-| Success | Preview, defect class, confidence, recommendation, Grad-CAM | Analyze another image |
-| Error | Preview when available and a concise recoverable error | Retry or choose another image |
+| `EMPTY` | Project heading, concise instruction, one-image uploader | Select one JPEG or PNG |
+| `IMAGE_SELECTED` | Validated image preview and enabled Analyze button | Analyze, replace, or remove image |
+| `ANALYZING` | Preview, progress indicator, disabled duplicate submission | Wait for completion |
+| `SUCCESS` | Preview, defect class, confidence, recommendation, Grad-CAM | Analyze another image |
+| `ERROR` | Preview when available and a concise recoverable error | Retry or choose another image |
 
 ## Interaction rules
 
 1. The uploader accepts one file only. It must not present multi-select or
    batch behavior.
 2. The image is decoded before preview. Invalid or unsupported content keeps
-   the page out of the Ready state.
+   the page out of the `IMAGE_SELECTED` state.
 3. Analyze is disabled until one valid image exists.
 4. While a request is in progress, the UI prevents a second submission.
 5. A success state is shown only after all required response fields pass

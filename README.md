@@ -2,16 +2,19 @@
 
 Intelligent Steel Surface Defect Detection for Smart Manufacturing.
 
-SteelGuard AI is a monorepo foundation for a competition project that will
-eventually accept one steel surface image, run one AI inference, and return a
-defect class, confidence score, Grad-CAM, and quality recommendation.
+SteelGuard AI is a competition-project monorepo for single-image steel surface
+inspection. The frontend MVP accepts one image, exercises the complete
+interaction with mock AI data, and displays a defect class, confidence score,
+quality recommendation, and an honest Grad-CAM placeholder.
 
-The repository currently contains the foundation only:
+The repository currently contains:
 
-- a Streamlit readiness page for the frontend;
+- a working single-page Streamlit frontend with upload, validation, preview,
+  loading, result, error, retry, and reset states;
+- a validated mock prediction service behind the future API client boundary;
 - documented backend and AI boundaries;
 - an API contract for the future prediction endpoint;
-- a contract-shaped mock response for frontend work;
+- a contract-shaped mock response used by the frontend; and
 - repository documentation for scope, flow, and ownership.
 
 The frontend is presentation-only. It must never calculate or alter the
@@ -20,10 +23,12 @@ backend.
 
 ## Current status
 
-- The Streamlit frontend starts and shows a foundation overview page.
-- Frontend component, service, and validation modules are placeholders.
+- The Streamlit frontend completes the one-image workflow with explicit mock
+  AI output.
+- Frontend components, Pillow validation, response validation, errors, retry,
+  and reset are implemented and covered by automated tests.
 - The FastAPI backend and deep-learning implementation have not been created.
-- A contract-shaped mock response is available for future frontend work.
+- Live `POST /predict` integration and generated Grad-CAM remain future work.
 - Docker Compose currently runs only the frontend service.
 
 ## Quick start
@@ -33,15 +38,21 @@ Use Python 3.11 to match the frontend container.
 ### Run locally
 
 ```powershell
-cd frontend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-streamlit run app.py
+python -m pip install -r frontend/requirements.txt
+streamlit run frontend/app.py
 ```
 
 For POSIX shells, activate the environment with `source .venv/bin/activate`.
 Then open <http://localhost:8501>.
+
+Run the automated frontend tests from the repository root:
+
+```powershell
+cd frontend
+..\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
 
 ### Run with Docker Compose
 
@@ -69,7 +80,7 @@ See these documents before implementing a subsystem:
 | [Project plan](docs/PROJECT_PLAN.md) | Delivery phases, ownership, and completion criteria |
 | [Features](docs/FEATURES.md) | MVP capabilities and explicit exclusions |
 | [Architecture](docs/ARCHITECTURE.md) | Service boundaries and end-to-end data flow |
-| [API contract](docs/API_CONTRACT.md) | Versioned prediction request and response contract |
+| [API contract](docs/API_CONTRACT.md) | Stable prediction request and response contract |
 | [UI flow](docs/UI_FLOW.md) | Single-image interaction states and transitions |
 | [Frontend specification](docs/FRONTEND_SPEC.md) | Streamlit component responsibilities and constraints |
 | [Development log](docs/DEVELOPMENT_LOG.md) | Chronological record and entry template |

@@ -64,3 +64,42 @@ inspection-event log and must never contain user images or predictions.
 
 - Implement the documented frontend workflow, FastAPI service, and AI adapter
   in their respective delivery phases.
+
+## 2026-08-11 — Frontend mock inspection MVP
+
+**Status:** Verified
+
+### Changes
+
+- Implemented the single-image Streamlit workflow from upload through reset.
+- Added Pillow validation, original-image preview, and safe validation errors.
+- Added a contract-validating `predict_image(...)` service backed by the mock
+  response fixture.
+- Added defect, confidence, recommendation, and original-versus-Grad-CAM
+  presentation components; missing mock Grad-CAM uses an honest placeholder.
+- Added responsive industrial styling and explicit mock-mode labeling.
+
+### Decisions
+
+- The frontend remains display-only for classification, confidence, Grad-CAM,
+  and recommendation.
+- Mock prediction data flows through the same service boundary intended for
+  the future `POST /predict` integration.
+- A mock latency is configurable only to make the inference loading state
+  visible; it does not simulate training progress.
+- No generated scientific heatmap is fabricated for the mock result.
+
+### Validation
+
+- Passed 15 unittest and Streamlit AppTest cases covering the happy path,
+  reset, corrupt input, service failure, response fields, class enum, and
+  confidence bounds.
+- Compiled all frontend Python modules successfully.
+- Started the real Streamlit server and received `ok` from its health endpoint.
+- Automated browser control and Docker runtime validation were unavailable on
+  the current host; the Streamlit test harness covered UI interactions.
+
+### Follow-up
+
+- Implement FastAPI and AI separately, confirm Grad-CAM transport, then replace
+  the mock service internals with `POST /predict` without rewriting components.

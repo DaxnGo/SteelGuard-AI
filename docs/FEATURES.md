@@ -18,21 +18,26 @@ Upload ONE steel image
 
 ## Feature inventory
 
-| Capability | Foundation status | MVP owner |
+| Capability | Current status | MVP owner |
 | --- | --- | --- |
-| Streamlit startup page | Available | Frontend |
-| Single JPEG/PNG selection | Planned | Frontend |
-| Local image preview | Planned | Frontend |
-| One prediction API request | Planned | Frontend and backend |
+| Streamlit single-page inspection UI | Available | Frontend |
+| Single JPEG/PNG selection | Available | Frontend |
+| Local validation and image preview | Available | Frontend |
+| One mock prediction service call | Available | Frontend |
+| One live `POST /predict` request | Planned | Frontend and backend |
 | Six-class inference | Planned | AI |
-| Confidence output | Planned | AI |
-| Grad-CAM output | Planned | AI and backend |
-| ACCEPT/REWORK/REJECT recommendation | Planned | AI |
-| Recoverable error and reset states | Planned | Frontend |
+| Six-class result presentation | Available | Frontend |
+| Confidence presentation | Available with mock data | Frontend |
+| Generated Grad-CAM output | Planned | AI and backend |
+| Honest Grad-CAM placeholder | Available | Frontend |
+| Recommendation presentation | Available with mock data | Frontend |
+| Recommendation logic | Planned | AI, backend, and product |
+| Recoverable error, retry, and reset states | Available | Frontend |
 | Contract-shaped mock response | Available | Shared |
 
-"Available" means present in the repository foundation. "Planned" means
-specified but intentionally not implemented yet.
+"Available" means implemented in the repository. "Available with mock data"
+means the presentation path works but does not claim live AI behavior.
+"Planned" means specified but intentionally not implemented yet.
 
 ## Supported defect classes
 
@@ -61,8 +66,8 @@ labels.
   same backend prediction response.
 - Client-side validation may check file type and readability for usability but
   is never a substitute for backend validation.
-- Mock data may support frontend development, but the demo must make mock and
-  live modes unambiguous. The foundation does not yet implement either mode.
+- Mock mode is implemented for independent frontend development and is visibly
+  identified in the page. A live request must never silently fall back to it.
 - An error must never fall back to a plausible-looking prediction.
 
 ## Explicitly out of scope
