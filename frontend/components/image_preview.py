@@ -25,7 +25,7 @@ def render_image_preview(image: ValidatedImage) -> None:
         st.image(
             image.preview,
             caption=f"Original steel surface image — {image.filename}",
-            use_container_width=True,
+            width="stretch",
         )
 
         filename_column, dimensions_column, size_column = st.columns(3)

@@ -39,7 +39,7 @@ def render_gradcam_view(image: ValidatedImage, gradcam_reference: str) -> None:
             st.image(
                 image.preview,
                 caption=f"Uploaded steel surface — {image.filename}",
-                use_container_width=True,
+                width="stretch",
             )
 
     with gradcam_column:
@@ -50,7 +50,7 @@ def render_gradcam_view(image: ValidatedImage, gradcam_reference: str) -> None:
                 st.image(
                     str(gradcam_path),
                     caption="Backend-supplied Grad-CAM model explanation",
-                    use_container_width=True,
+                    width="stretch",
                 )
             else:
                 st.markdown(

@@ -172,10 +172,10 @@ def render_error_state() -> None:
     if image is not None:
         retry_column, reset_column = st.columns(2)
         with retry_column:
-            if st.button("Try Again", type="primary", use_container_width=True):
+            if st.button("Try Again", type="primary", width="stretch"):
                 run_mock_analysis(image)
         with reset_column:
-            if st.button("Choose Another Image", use_container_width=True):
+            if st.button("Choose Another Image", width="stretch"):
                 reset_and_rerun()
     elif st.button("Try Again", type="primary"):
         reset_and_rerun()
@@ -191,7 +191,7 @@ def render_success_state(image: ValidatedImage, prediction: dict[str, Any]) -> N
     if st.button(
         "Analyze Another Image",
         type="primary",
-        use_container_width=True,
+        width="stretch",
     ):
         reset_and_rerun()
 
@@ -222,7 +222,7 @@ def render_inspection_interface() -> None:
         render_image_preview(image)
 
     if state == IMAGE_SELECTED and isinstance(image, ValidatedImage):
-        if st.button("Analyze Surface", type="primary", use_container_width=True):
+        if st.button("Analyze Surface", type="primary", width="stretch"):
             run_mock_analysis(image)
     elif state == ERROR:
         render_error_state()
