@@ -8,19 +8,19 @@ code in the foundation phase.
 
 The backend team must:
 
-1. Implement `POST /api/v1/predict` exactly as described in
+1. Implement `POST /predict` exactly as described in
    [`docs/API_CONTRACT.md`](../docs/API_CONTRACT.md).
-2. Accept exactly one multipart field named `image` and reject missing,
+2. Accept exactly one multipart field named `file` and reject missing,
    repeated, unsupported, or unreadable inputs with appropriate HTTP errors.
 3. Decode the image and invoke the AI adapter once. A request must never be
    expanded into batch or multi-image inference.
 4. Validate the AI result against the six supported labels, confidence range,
    and three recommendation values before serialization.
-5. Return classification, confidence, recommendation, and Grad-CAM reference
-   without asking the frontend to derive any of them.
-6. Make the Grad-CAM reference retrievable by the frontend. Any temporary
-   artifact handling must not become inspection history or automated data
-   logging.
+5. Return classification, confidence, recommendation, and the confirmed
+   Grad-CAM representation without asking the frontend to derive any of them.
+6. Encode or expose Grad-CAM according to the confirmed contract option. Any
+   temporary artifact handling must not become inspection history or automated
+   data logging.
 7. Convert validation, inference, and availability failures into documented,
    non-sensitive HTTP error responses.
 
@@ -35,19 +35,19 @@ recommendation   ACCEPT, REWORK, or REJECT
 gradcam_artifact image bytes, an in-memory object, or a temporary artifact
 ```
 
-The backend is responsible for turning `gradcam_artifact` into the
-`gradcam_image` resource reference used by the HTTP contract. It must not
+The backend is responsible for turning `gradcam_artifact` into the confirmed
+`gradcam_image` representation used by the HTTP contract. It must not
 reclassify the image, synthesize a confidence score, or invent a recommendation
 when the AI adapter fails.
 
 ## Backend deliverables for frontend integration
 
 - A reachable FastAPI base URL configurable by environment.
-- The versioned prediction endpoint and OpenAPI schema.
+- The contract-defined prediction endpoint and OpenAPI schema.
 - CORS configuration for the deployed Streamlit origin when the services are
   hosted on different origins.
 - Predictable timeouts and the documented JSON error shape.
-- A browser-retrievable Grad-CAM reference.
+- A contract-valid Grad-CAM representation.
 - A container definition before a backend service is added to Compose.
 
 ## Out of scope for the preliminary MVP

@@ -8,10 +8,10 @@ preliminary MVP.
 ```mermaid
 flowchart LR
     U[User] -->|one JPEG or PNG| F[Streamlit frontend]
-    F -->|POST /api/v1/predict| B[FastAPI backend]
+    F -->|POST /predict| B[FastAPI backend]
     B -->|one decoded image| A[AI adapter]
     A -->|class, confidence, recommendation, Grad-CAM artifact| B
-    B -->|JSON result and Grad-CAM reference| F
+    B -->|JSON result and Grad-CAM representation| F
     F -->|display only| U
 ```
 
@@ -24,7 +24,8 @@ flowchart LR
 - Perform non-authoritative usability validation before upload.
 - Make one synchronous prediction request through the API client boundary.
 - Treat prediction fields as immutable display data.
-- Resolve and render the backend-provided Grad-CAM resource.
+- Decode or retrieve and render the confirmed backend-provided Grad-CAM
+  representation.
 
 The frontend must not contain model code, label scoring, confidence thresholds,
 recommendation rules, or heatmap generation.
@@ -34,7 +35,7 @@ recommendation rules, or heatmap generation.
 - Own the public HTTP contract and authoritative request validation.
 - Decode one image and call the AI adapter once.
 - Validate and serialize the adapter result.
-- Expose a retrievable Grad-CAM reference.
+- Serialize the confirmed Grad-CAM representation.
 - Map known failures to stable HTTP statuses and safe messages.
 
 The backend must not return a fabricated fallback prediction when inference
@@ -53,17 +54,18 @@ capabilities for the preliminary MVP.
 
 1. The user selects one supported image in Streamlit.
 2. The frontend decodes it for preview and local validation only.
-3. On Analyze, the API client sends the original selected file in the `image`
+3. On Analyze, the API client sends the original selected file in the `file`
    multipart field.
 4. FastAPI validates and decodes the request, then invokes the AI adapter.
 5. The adapter returns a single logical prediction and Grad-CAM artifact.
-6. FastAPI makes the artifact retrievable and returns the JSON response.
+6. FastAPI packages the artifact using the confirmed transport and returns the
+   JSON response.
 7. Streamlit renders the returned values and provides a reset action.
 
 No database is required in this flow. User images, results, and Grad-CAM output
-must not become inspection history. If the backend uses temporary artifacts to
-serve Grad-CAM, their lifecycle must remain request/demo infrastructure rather
-than a persistent product feature.
+must not become inspection history. If the confirmed transport uses temporary
+artifacts, their lifecycle must remain request/demo infrastructure rather than
+a persistent product feature.
 
 ## Runtime and deployment foundation
 

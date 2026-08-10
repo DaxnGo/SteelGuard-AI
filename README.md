@@ -79,7 +79,8 @@ See these documents before implementing a subsystem:
 - Frontend: accept and preview one image, call the backend, and display
   backend-supplied output.
 - Backend: validate the HTTP request, invoke the AI adapter once, serialize
-  the result, expose the Grad-CAM resource, and return clear HTTP errors.
+  the result and confirmed Grad-CAM representation, and return clear HTTP
+  errors.
 - AI: own preprocessing, model inference, label mapping, confidence,
   Grad-CAM generation, and recommendation policy.
 
@@ -89,8 +90,8 @@ databases, batch inference, or multi-image inference to the preliminary MVP.
 
 ## API boundary
 
-The planned frontend integration uses `POST /api/v1/predict` with one
-`multipart/form-data` field named `image`. The complete contract and error
+The planned frontend integration uses `POST /predict` with one
+`multipart/form-data` field named `file`. The complete contract and error
 behavior are defined in [docs/API_CONTRACT.md](docs/API_CONTRACT.md).
 
 ## Git conventions
