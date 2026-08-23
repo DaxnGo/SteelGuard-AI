@@ -167,3 +167,22 @@ inspection-event log and must never contain user images or predictions.
 - Resolve D-04/D-05 with the team, then switch the Compose environment to live
   mode and add the real AI adapter without changing the frontend presentation
   boundary.
+
+## 2026-08-24 — Phase 2 FE-to-dummy-BE smoke check
+
+**Status:** Verified
+
+### Changes
+
+- Added `scripts/phase2_smoke_test.py`, a reproducible check that starts a
+  temporary FastAPI dummy backend and exercises it through the real frontend
+  Requests client.
+- Documented the Phase 2 command in the README and frontend integration guide.
+
+### Validation
+
+- The smoke check validates the live client configuration, one multipart image
+  request, and the contract-shaped dummy response without using mock data.
+- D-04 timeout values and D-05 Grad-CAM transport remain explicitly unresolved;
+  the smoke check uses temporary local timeout values and accepts dummy
+  `gradcam_image: null` only.

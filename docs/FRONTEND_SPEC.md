@@ -4,7 +4,7 @@
 >
 > **Frontend:** Python, Streamlit, Requests, Pillow, and custom CSS
 >
-> **Repository status:** The mock-driven preliminary frontend MVP and configurable API client boundary are implemented. Live FastAPI integration remains planned.
+> **Repository status:** The mock-driven preliminary frontend MVP and configurable API client boundary are implemented. Phase 2 dummy FastAPI integration is reproducibly smoke-tested; real AI integration remains planned.
 
 The frontend is a presentation client. It owns user interaction, current-page
 state, HTTP orchestration, and display of backend AI results. It does not own
@@ -472,7 +472,7 @@ PredictionResult {
 | Inject or stub the API client in tests rather than embedding prediction constants in UI components. | **MUST HAVE** |
 | Keep fixture keys, types, labels, and recommendation values synchronized with the API contract. | **MUST HAVE** |
 | Add invalid-response fixtures for missing fields, unsupported enums, invalid confidence, and invalid Grad-CAM representations. | **SHOULD HAVE** |
-| Keep the current competition frontend in explicit mock mode until the backend integration checklist is approved. | **MUST HAVE** |
+| Keep the current competition frontend in explicit mock mode by default; enable the Phase 2 dummy/live path only through documented environment settings. | **MUST HAVE** |
 | Update the API contract, fixture, response validator, tests, and development log together when the contract changes. | **MUST HAVE** |
 | Fall back to mock data after a live timeout, server error, or invalid response. | **OUT OF SCOPE** |
 | Present mock output as a live model result during the competition demonstration. | **OUT OF SCOPE** |

@@ -4,6 +4,17 @@
 > **Dummy backend status:** FastAPI Phase 1 available; local FE-to-BE smoke test verified
 > **Frontend boundary:** `frontend/services/api_client.py`
 
+Phase 2 now has a reproducible cross-service check:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/phase2_smoke_test.py
+```
+
+The check starts a temporary FastAPI dummy backend and sends one validated image
+through the real frontend Requests client. It uses temporary `2` second connect
+and `10` second read values for the smoke test only; final D-04 timeout values
+remain a team decision.
+
 ## Stable frontend interface
 
 The Streamlit application calls only:
@@ -115,7 +126,7 @@ When the real AI service and deployment settings become available:
 - [x] Add the backend service and health dependency to Docker Compose.
 - [x] Run API-client tests against mocked transport.
 - [x] Run contract tests against the FastAPI test application.
-- [x] Run one frontend-to-dummy-backend smoke test with a known test image.
+- [x] Run the reproducible frontend-to-dummy-backend smoke test with a known test image.
 - [ ] Verify connection, timeout, `400`, `415`, `422`, `500`, `503`, malformed
       JSON, and contract-invalid responses.
 - [x] Confirm a failed real request never produces mock output.

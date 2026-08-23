@@ -6,9 +6,9 @@ SteelGuard AI uses a deliberately small three-boundary architecture for the
 preliminary MVP.
 
 The implemented frontend phase preserves this target boundary by routing
-`predict_image(...)` through `services/api_client.py`, which currently reads a
-validated mock response. Replacing that mock implementation with
-`POST /predict` must not require presentation-component changes.
+`predict_image(...)` through `services/api_client.py`, which supports both the
+validated mock response and the Phase 2 dummy `POST /predict` path. Replacing
+the dummy adapter with real AI must not require presentation-component changes.
 
 ```mermaid
 flowchart LR
@@ -70,7 +70,7 @@ capabilities for the preliminary MVP.
 Before the real model is available, steps 3–6 can use either the local mock
 prediction service or the Phase 1 FastAPI dummy backend. Both return the same
 logical response shape, do not perform real AI or recommendation logic, and the
-frontend source label identifies mock mode when the local fixture is selected.
+frontend source label identifies which mode is selected.
 
 No database is required in this flow. User images, results, and Grad-CAM output
 must not become inspection history. If the confirmed transport uses temporary

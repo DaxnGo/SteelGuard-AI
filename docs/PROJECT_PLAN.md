@@ -296,8 +296,8 @@ flowchart LR
 
 | Subsystem | Current repository state | Preliminary MVP target |
 | --- | --- | --- |
-| Frontend | Complete mock-driven one-image state flow | Replace the mock service with the contract-defined live API call |
-| Backend | Responsibility documentation only | Runnable FastAPI prediction service |
+| Frontend | Complete one-image state flow with mock and configurable live API client | Use the contract-defined live API with the real AI adapter |
+| Backend | Runnable FastAPI Phase 1 dummy prediction service with validation and tests | Replace the dummy adapter with the real AI adapter |
 | AI | Responsibility documentation only | Reproducible trained artifact and single-image adapter |
 | Containers | Frontend and backend Dockerfiles with two-service Compose | Healthy frontend and backend services with model access |
 
@@ -307,8 +307,8 @@ flowchart LR
 | --- | --- | --- |
 | Language/runtime | Python 3.11 | Current frontend container baseline; backend and AI environments must remain compatible |
 | Frontend | Streamlit | Current dependency and implemented single-image operator interface |
-| Frontend HTTP and imaging | Requests and Pillow | Configurable mock/real API boundary and current image usability validation; live FastAPI remains disconnected |
-| Backend | FastAPI | Planned contract-defined inference API and validation boundary |
+| Frontend HTTP and imaging | Requests and Pillow | Configurable mock/real API boundary; Phase 2 dummy endpoint smoke-tested |
+| Backend | FastAPI | Implemented contract-defined inference API and validation boundary; real AI remains pending |
 | AI models | CNN, MobileNetV2, EfficientNetB0, ResNet50 | Candidate architectures; final selection is D-02 |
 | AI framework | To be confirmed | D-02; framework tensors must remain behind the adapter |
 | Dataset | NEU Surface Defect Database | Supplied six-class project dataset; governance and preparation details are D-01 |

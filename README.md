@@ -33,7 +33,8 @@ backend.
   and reset are implemented and covered by automated tests.
 - The Phase 1 FastAPI backend and dummy AI adapter are available; the trained
   deep-learning model remains future work.
-- FE-to-dummy-BE `POST /predict` integration has been smoke-tested locally.
+- Phase 2 FE-to-dummy-BE `POST /predict` integration is reproducibly smoke-tested
+  with `python scripts/phase2_smoke_test.py`.
 - Generated Grad-CAM and the final recommendation policy remain future work.
 - Docker Compose now defines healthy backend and frontend services; live mode
   requires explicit environment values while D-04 remains open.
@@ -64,6 +65,13 @@ For a local FE-to-BE smoke test, set `STEELGUARD_USE_MOCK_API=false`,
 `STEELGUARD_API_BASE_URL=http://localhost:8000`, and positive connection/read
 timeouts before starting Streamlit. The timeout values are temporary dummy
 integration settings, not the final D-04 decision.
+
+To run the reproducible Phase 2 check, which starts a temporary dummy backend
+and calls it through the real frontend API client:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/phase2_smoke_test.py
+```
 
 Run the automated frontend tests from the repository root:
 
