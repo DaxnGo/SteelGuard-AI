@@ -1,15 +1,33 @@
 services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test:
+        ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
   frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
     ports:
       - "8501:8501"
+    depends_on:
+      backend:
+        condition: service_healthy
     environment:
       STREAMLIT_SERVER_HEADLESS: "true"
       STREAMLIT_BROWSER_GATHER_USAGE_STATS: "false"
       STEELGUARD_USE_MOCK_API: "${STEELGUARD_USE_MOCK_API:-true}"
-      STEELGUARD_API_BASE_URL: "${STEELGUARD_API_BASE_URL:-}"
+      STEELGUARD_API_BASE_URL: "${STEELGUARD_API_BASE_URL:-http://backend:8000}"
       STEELGUARD_API_CONNECT_TIMEOUT_SECONDS: "${STEELGUARD_API_CONNECT_TIMEOUT_SECONDS:-}"
       STEELGUARD_API_READ_TIMEOUT_SECONDS: "${STEELGUARD_API_READ_TIMEOUT_SECONDS:-}"
       STEELGUARD_MOCK_DELAY_SECONDS: "${STEELGUARD_MOCK_DELAY_SECONDS:-0.6}"

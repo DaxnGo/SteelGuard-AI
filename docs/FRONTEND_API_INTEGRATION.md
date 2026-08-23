@@ -1,7 +1,7 @@
 # SteelGuard AI Frontend API Integration Readiness
 
 > **Current mode:** Mock API
-> **Live backend status:** Not connected
+> **Dummy backend status:** FastAPI Phase 1 available; local FE-to-BE smoke test verified
 > **Frontend boundary:** `frontend/services/api_client.py`
 
 ## Stable frontend interface
@@ -72,8 +72,10 @@ With real mode deliberately enabled, the service:
 6. parses JSON and validates it through the same normalized response boundary;
 7. performs no automatic retry and never falls back to mock data.
 
-No request to a real backend is part of the current MVP execution or automated
-tests. HTTP behavior is tested through mocked Requests responses.
+The Phase 1 dummy backend has been exercised locally with one real
+`GET /health` request and one real `POST /predict` request. The automated client
+tests still use mocked Requests transport; the final integration test must run
+against the confirmed deployment configuration.
 
 ## Prepared error mapping
 
@@ -99,9 +101,9 @@ offer image replacement instead of retrying unchanged input.
 
 ## Activation checklist
 
-When the FastAPI service becomes available:
+When the real AI service and deployment settings become available:
 
-- [ ] Confirm `POST /predict` against `docs/API_CONTRACT.md`.
+- [x] Confirm the Phase 1 dummy `POST /predict` against `docs/API_CONTRACT.md`.
 - [ ] Confirm the final Grad-CAM transport representation.
 - [ ] Require a non-empty Grad-CAM representation in live mode after transport
       confirmation; retain `null` only for the dummy stage.
@@ -110,11 +112,11 @@ When the FastAPI service becomes available:
 - [ ] Set `STEELGUARD_USE_MOCK_API=false` in the target environment.
 - [ ] Set `STEELGUARD_API_BASE_URL` without `/predict` and without credentials.
 - [ ] Set both confirmed timeout variables.
-- [ ] Add the backend service and health dependency to Docker Compose.
-- [ ] Run API-client tests against mocked transport.
-- [ ] Run contract tests against the FastAPI test application.
-- [ ] Run one frontend-to-backend integration test with a known test image.
+- [x] Add the backend service and health dependency to Docker Compose.
+- [x] Run API-client tests against mocked transport.
+- [x] Run contract tests against the FastAPI test application.
+- [x] Run one frontend-to-dummy-backend smoke test with a known test image.
 - [ ] Verify connection, timeout, `400`, `415`, `422`, `500`, `503`, malformed
       JSON, and contract-invalid responses.
-- [ ] Confirm a failed real request never produces mock output.
-- [ ] Keep `app.py` and all presentation components unchanged.
+- [x] Confirm a failed real request never produces mock output.
+- [x] Keep `app.py` and all presentation components unchanged for backend hookup.

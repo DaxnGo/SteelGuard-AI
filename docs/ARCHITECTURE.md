@@ -67,9 +67,10 @@ capabilities for the preliminary MVP.
    JSON response.
 7. Streamlit renders the returned values and provides a reset action.
 
-Until the backend exists, steps 3–6 are represented by the mock prediction
-service. It returns the same logical response shape, does not perform AI or
-recommendation logic, and is visibly identified as mock mode in the UI.
+Before the real model is available, steps 3–6 can use either the local mock
+prediction service or the Phase 1 FastAPI dummy backend. Both return the same
+logical response shape, do not perform real AI or recommendation logic, and the
+frontend source label identifies mock mode when the local fixture is selected.
 
 No database is required in this flow. User images, results, and Grad-CAM output
 must not become inspection history. If the confirmed transport uses temporary
@@ -79,11 +80,11 @@ a persistent product feature.
 ## Runtime and deployment foundation
 
 - The frontend runs on Streamlit port `8501`.
-- The future backend will run as a separate FastAPI process and container.
+- The backend runs as a separate FastAPI process and container.
 - The AI adapter will execute inside, or be imported by, the backend process for
   the preliminary MVP; it is not a network microservice.
-- Docker Compose currently defines only the runnable frontend. The backend
-  service is added after its application and Dockerfile exist.
+- Docker Compose defines a health-checked backend and frontend service. The
+  frontend remains mock mode by default until live timeout settings are chosen.
 - The frontend API base URL will be configured by environment during the
   integration phase rather than hard-coded into UI components.
 

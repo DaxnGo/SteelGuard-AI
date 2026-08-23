@@ -133,3 +133,37 @@ inspection-event log and must never contain user images or predictions.
 
 - Wait for the dummy FastAPI endpoint, then run frontend-to-backend contract
   integration and resolve the remaining D-04/D-05 settings with the team.
+
+## 2026-08-24 — Phase 1 backend and dummy integration
+
+**Status:** Verified
+
+### Changes
+
+- Integrated the Phase 1 FastAPI `/health` and `/predict` implementation while
+  preserving the existing frontend history after the remote branch was
+  force-pushed as a standalone backend root commit.
+- Added backend Docker and health-checked two-service Compose wiring.
+- Removed generated backend `__pycache__` artifacts from the imported commit.
+- Added authoritative decoded-format validation for extension/content mismatches.
+
+### Decisions
+
+- Compose keeps the frontend in mock mode by default because D-04 timeout values
+  are not yet approved. Live dummy mode is available through explicit local
+  environment settings.
+- Phase 1 returns `gradcam_image: null`; final live Grad-CAM transport remains
+  the D-05 decision.
+
+### Validation
+
+- Backend suite passes: 8 tests.
+- Frontend suite remains green: 44 tests.
+- Local smoke test passed against Uvicorn: `GET /health` returned `{"status":"ok"}`
+  and FE `POST /predict` returned the validated dummy prediction.
+
+### Follow-up
+
+- Resolve D-04/D-05 with the team, then switch the Compose environment to live
+  mode and add the real AI adapter without changing the frontend presentation
+  boundary.

@@ -4,7 +4,7 @@
 >
 > **Document status:** Approved direction; preliminary MVP implementation is planned
 >
-> **Repository status:** Frontend mock MVP complete; backend and AI implementation remain planned
+> **Repository status:** Frontend mock MVP and Phase 1 dummy backend complete; real AI implementation remains planned
 
 The preliminary competition MVP has one non-negotiable product boundary:
 
@@ -21,19 +21,21 @@ classify a defect in one uploaded steel image, report the model's confidence,
 show a Grad-CAM explanation, and present an `ACCEPT`, `REWORK`, or `REJECT`
 recommendation to an operator.
 
-The repository now contains a foundation plus a working mock-driven frontend:
+The repository now contains a foundation, a working mock-driven frontend, and a
+Phase 1 dummy backend:
 
 - a runnable one-page Streamlit inspection workflow;
 - implemented upload, Pillow validation, preview, loading, result, error,
   retry, reset, and responsive presentation components;
 - a validated mock prediction service behind the future API client boundary;
-- documented FastAPI and AI subsystem boundaries, without their application
-  code;
+- a FastAPI `/health` and `/predict` implementation with request validation,
+  dummy adapter, tests, and Docker support;
 - a stable prediction API contract and contract-shaped mock response;
-- a frontend Dockerfile and frontend-only Docker Compose service; and
+- frontend and backend Dockerfiles with a health-checked two-service Compose
+  foundation; and
 - product, architecture, UI, and development documentation.
 
-The backend service, trained model, inference adapter, live HTTP call, and
+The trained model, real inference adapter, final live HTTP settings, and
 Grad-CAM generation are planned work. The preliminary MVP is successful when
 an operator can select one supported image, run one inference, view all four
 backend-supplied outputs, recover from errors, and reset the interface for a
@@ -297,7 +299,7 @@ flowchart LR
 | Frontend | Complete mock-driven one-image state flow | Replace the mock service with the contract-defined live API call |
 | Backend | Responsibility documentation only | Runnable FastAPI prediction service |
 | AI | Responsibility documentation only | Reproducible trained artifact and single-image adapter |
-| Containers | Frontend Dockerfile and frontend-only Compose | Healthy frontend and backend services with model access |
+| Containers | Frontend and backend Dockerfiles with two-service Compose | Healthy frontend and backend services with model access |
 
 ## 12. Technology Stack
 
@@ -311,7 +313,7 @@ flowchart LR
 | AI framework | To be confirmed | D-02; framework tensors must remain behind the adapter |
 | Dataset | NEU Surface Defect Database | Supplied six-class project dataset; governance and preparation details are D-01 |
 | Explainability | Grad-CAM | Planned explanation for the same classification inference |
-| Testing | Python unittest and Streamlit AppTest | Current frontend unit, contract, state, and workflow checks; backend and AI checks remain planned |
+| Testing | Python unittest, Streamlit AppTest, and backend pytest | Frontend and Phase 1 backend checks; AI/model-quality checks remain planned |
 | Containers | Docker and Docker Compose | Current frontend container foundation; target local two-service startup |
 | Source control | Git with Conventional Commits | Current repository history and planned team workflow |
 
@@ -671,9 +673,9 @@ accepted, but end-to-end integration depends on all three boundaries.
 | --- | --- | --- | --- | --- |
 | 0. Foundation | Complete | Shared | Monorepo structure, readiness page, docs, mock response, frontend container | Current Streamlit page starts; repository boundaries and API contract are documented |
 | 1. Frontend MVP | Complete | Frontend | Upload, preview, Analyze, loading/error/success, mock result, Grad-CAM placeholder, retry, reset | Full state flow passes against the approved fixture; no AI output is derived in the frontend |
-| 2. Backend API | Planned | Backend | FastAPI request validation, prediction endpoint, adapter test double, Grad-CAM transport, errors, container | API and negative-path tests conform to the API contract |
+| 2. Backend API | Phase 1 complete | Backend | FastAPI request validation, prediction endpoint, dummy adapter, errors, container | API and negative-path tests conform to the Phase 1 contract |
 | 3. AI baseline and selection | Planned | AI | Reproducible dataset protocol, candidate comparison, selected artifact, Grad-CAM, adapter | D-01 through D-03 are resolved; artifact evidence and adapter tests are complete |
-| 4. Integration | Planned | Shared | Streamlit → FastAPI → real model path and two-service Compose | End-to-end acceptance scenarios pass without fixture fallback or manual code changes |
+| 4. Integration | Dummy path verified | Shared | Streamlit → FastAPI dummy path and two-service Compose | Real AI path and final timeout/Grad-CAM decisions remain before full MVP acceptance |
 | 5. Demo hardening | Planned | Shared | Recovery behavior, operator guidance, reproducibility evidence, rehearsal | Clean-machine Docker rehearsal and Definition of Done review pass |
 
 > **Decision required D-07:** Assign people and target dates after team capacity

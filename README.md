@@ -3,17 +3,19 @@
 Intelligent Steel Surface Defect Detection for Smart Manufacturing.
 
 SteelGuard AI is a competition-project monorepo for single-image steel surface
-inspection. The frontend MVP accepts one image, exercises the complete
-interaction with mock AI data, and displays a defect class, confidence score,
-quality recommendation, and an honest Grad-CAM placeholder.
+inspection. The Streamlit frontend accepts one image, calls either the local
+mock or the Phase 1 FastAPI dummy backend, and displays a defect class,
+confidence score, quality recommendation, and an honest Grad-CAM placeholder.
 
 The repository currently contains:
 
 - a working single-page Streamlit frontend with upload, validation, preview,
   loading, result, error, retry, and reset states;
-- a validated mock prediction service behind the future API client boundary;
+- a validated mock prediction service and configurable Requests API client;
+- a Phase 1 FastAPI backend with `/health` and dummy `/predict` endpoints;
+- backend request validation, error responses, tests, and a Dockerfile;
 - documented backend and AI boundaries;
-- an API contract for the future prediction endpoint;
+- an API contract for the prediction endpoint;
 - a contract-shaped mock response used by the frontend; and
 - repository documentation for scope, flow, and ownership.
 
@@ -29,9 +31,12 @@ backend.
   gated, mocked-test-covered Requests adapter for future `POST /predict` use.
 - Frontend components, Pillow validation, response validation, errors, retry,
   and reset are implemented and covered by automated tests.
-- The FastAPI backend and deep-learning implementation have not been created.
-- Live `POST /predict` integration and generated Grad-CAM remain future work.
-- Docker Compose currently runs only the frontend service.
+- The Phase 1 FastAPI backend and dummy AI adapter are available; the trained
+  deep-learning model remains future work.
+- FE-to-dummy-BE `POST /predict` integration has been smoke-tested locally.
+- Generated Grad-CAM and the final recommendation policy remain future work.
+- Docker Compose now defines healthy backend and frontend services; live mode
+  requires explicit environment values while D-04 remains open.
 
 ## Quick start
 
@@ -42,12 +47,23 @@ Use Python 3.11 to match the frontend container.
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -r frontend/requirements.txt
+python -m pip install -r frontend/requirements.txt -r backend/requirements.txt
 streamlit run frontend/app.py
 ```
 
 For POSIX shells, activate the environment with `source .venv/bin/activate`.
 Then open <http://localhost:8501>.
+
+To run the dummy backend locally in a second terminal:
+
+```powershell
+uvicorn app.main:app --app-dir backend --reload --port 8000
+```
+
+For a local FE-to-BE smoke test, set `STEELGUARD_USE_MOCK_API=false`,
+`STEELGUARD_API_BASE_URL=http://localhost:8000`, and positive connection/read
+timeouts before starting Streamlit. The timeout values are temporary dummy
+integration settings, not the final D-04 decision.
 
 Run the automated frontend tests from the repository root:
 
@@ -56,20 +72,28 @@ cd frontend
 ..\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
+Run the backend tests from the repository root:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest backend/tests -q
+```
+
 ### Run with Docker Compose
 
 ```bash
 docker compose up --build
 ```
 
-The frontend is exposed at <http://localhost:8501>. A backend service will be
-added after the FastAPI application and its Dockerfile exist.
+The frontend is exposed at <http://localhost:8501> and the backend at
+<http://localhost:8000>. Compose keeps the frontend in mock mode by default;
+set the live API variables in `.env` to exercise the dummy backend through the
+container network.
 
 ## Repository layout
 
 ```text
 frontend/   Streamlit application, UI boundaries, styles, and API client boundary
-backend/    FastAPI guidance; no application code yet
+backend/    FastAPI request validation, dummy prediction API, tests, and Docker
 ai/         AI integration guidance; no model or inference code yet
 docs/       Product, architecture, API, UI, and development documentation
 mock/       Contract-shaped fixtures for independent frontend development
