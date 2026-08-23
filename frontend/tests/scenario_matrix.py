@@ -36,7 +36,7 @@ def prediction_response(
     class_name: Any = "Scratches",
     confidence: Any = 0.95,
     recommendation: Any = "REWORK",
-    gradcam_image: Any = "mock_gradcam.png",
+    gradcam_image: Any = None,
 ) -> dict[str, Any]:
     """Build contract-shaped test data without deriving any AI field."""
 

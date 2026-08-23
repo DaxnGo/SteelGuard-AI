@@ -13,8 +13,11 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 FRONTEND_DIRECTORY = Path(__file__).resolve().parents[1]
 
 
-def find_local_gradcam(reference: str) -> Path | None:
+def find_local_gradcam(reference: str | None) -> Path | None:
     """Resolve a mock Grad-CAM filename only within known project folders."""
+
+    if reference is None:
+        return None
 
     safe_name = Path(reference).name
     if not safe_name or Path(safe_name).suffix.lower() not in {".jpg", ".jpeg", ".png"}:
@@ -27,7 +30,7 @@ def find_local_gradcam(reference: str) -> Path | None:
     return next((path for path in candidates if path.is_file()), None)
 
 
-def render_gradcam_view(image: ValidatedImage, gradcam_reference: str) -> None:
+def render_gradcam_view(image: ValidatedImage, gradcam_reference: str | None) -> None:
     """Render original versus Grad-CAM, or an honest empty placeholder."""
 
     st.markdown(

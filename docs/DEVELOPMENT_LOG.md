@@ -103,3 +103,33 @@ inspection-event log and must never contain user images or predictions.
 
 - Implement FastAPI and AI separately, confirm Grad-CAM transport, then replace
   the mock service internals with `POST /predict` without rewriting components.
+
+## 2026-08-23 — Frontend integration-ready freeze
+
+**Status:** Verified
+
+### Changes
+
+- Aligned the dummy response with `gradcam_image: null` and retained the honest
+  Grad-CAM placeholder until the live transport is confirmed.
+- Preserved normalized error retryability so unchanged invalid input cannot be
+  submitted again from the error state.
+- Added regression coverage for nullable dummy Grad-CAM and retryable versus
+  non-retryable recovery controls.
+
+### Decisions
+
+- `gradcam_image` remains required, but `null` is valid only during dummy
+  integration. Live inference must use the transport confirmed under D-05.
+- Retryable service failures keep the current valid image and offer a deliberate
+  retry; non-retryable failures require replacement.
+
+### Validation
+
+- Passed all 44 frontend unittest and Streamlit AppTest cases, including the
+  complete 90-case response matrix.
+
+### Follow-up
+
+- Wait for the dummy FastAPI endpoint, then run frontend-to-backend contract
+  integration and resolve the remaining D-04/D-05 settings with the team.

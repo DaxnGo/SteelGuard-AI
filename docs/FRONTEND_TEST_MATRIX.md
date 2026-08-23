@@ -42,7 +42,7 @@ Run the automated matrix tests from the repository root:
 
 Each range below covers the Cartesian product of all three recommendations and
 all five confidence values for the named class. Every case uses
-`gradcam_image: "mock_gradcam.png"`.
+`gradcam_image: null` and must render the explicit dummy placeholder.
 
 | Test Case | Input | Expected UI State | Expected Result |
 | --- | --- | --- | --- |

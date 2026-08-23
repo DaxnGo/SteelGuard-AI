@@ -58,7 +58,7 @@ class PredictionData(TypedDict):
     class_name: str
     confidence: float
     recommendation: str
-    gradcam_image: str
+    gradcam_image: str | None
 
 
 class PredictionResponse(TypedDict):
@@ -227,7 +227,9 @@ def validate_prediction_response(response: object) -> PredictionResponse:
         )
 
     gradcam_image = prediction["gradcam_image"]
-    if not isinstance(gradcam_image, str) or not gradcam_image.strip():
+    if gradcam_image is not None and (
+        not isinstance(gradcam_image, str) or not gradcam_image.strip()
+    ):
         raise PredictionServiceError(
             "The AI service response is missing Grad-CAM output."
         )
@@ -238,7 +240,9 @@ def validate_prediction_response(response: object) -> PredictionResponse:
             "class_name": class_name,
             "confidence": float(confidence),
             "recommendation": recommendation,
-            "gradcam_image": gradcam_image.strip(),
+            "gradcam_image": (
+                gradcam_image.strip() if isinstance(gradcam_image, str) else None
+            ),
         },
     }
 

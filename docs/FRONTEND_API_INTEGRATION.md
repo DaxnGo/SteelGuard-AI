@@ -21,7 +21,7 @@ Both configured sources return the same validated internal structure:
     "class_name": "Scratches",
     "confidence": 0.942,
     "recommendation": "REWORK",
-    "gradcam_image": "..."
+    "gradcam_image": null
   }
 }
 ```
@@ -55,7 +55,8 @@ With `STEELGUARD_USE_MOCK_API=true` or with the variable unset:
 2. The service loads `mock/prediction_response.json` or the optional configured
    fixture path.
 3. The same response validator used by real mode checks every required field,
-   enum, confidence bound, and Grad-CAM reference.
+   enum, and confidence bound; it accepts the explicit dummy Grad-CAM `null`
+   and rejects malformed non-null references.
 4. The UI receives only the normalized internal structure.
 
 ## Prepared real-mode behavior
@@ -92,12 +93,18 @@ tests. HTTP behavior is tested through mocked Requests responses.
 Raw Requests exceptions, backend internals, response bodies, local paths, and
 credentials are not displayed to the operator.
 
+Retryable connection, timeout, `500`, and `503` failures keep the valid image
+and offer a deliberate retry. Non-retryable request/configuration failures
+offer image replacement instead of retrying unchanged input.
+
 ## Activation checklist
 
 When the FastAPI service becomes available:
 
 - [ ] Confirm `POST /predict` against `docs/API_CONTRACT.md`.
 - [ ] Confirm the final Grad-CAM transport representation.
+- [ ] Require a non-empty Grad-CAM representation in live mode after transport
+      confirmation; retain `null` only for the dummy stage.
 - [ ] Resolve D-04 and record approved connection/read timeout values.
 - [ ] Verify the backend accepts exactly one multipart field named `file`.
 - [ ] Set `STEELGUARD_USE_MOCK_API=false` in the target environment.

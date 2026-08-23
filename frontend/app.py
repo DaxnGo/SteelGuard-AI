@@ -38,6 +38,7 @@ IMAGE_KEY = "selected_image"
 SIGNATURE_KEY = "selected_signature"
 PREDICTION_KEY = "prediction"
 ERROR_KEY = "inspection_error"
+ERROR_RETRYABLE_KEY = "inspection_error_retryable"
 UPLOADER_VERSION_KEY = "uploader_version"
 
 
@@ -58,6 +59,7 @@ def initialize_session_state() -> None:
         SIGNATURE_KEY: None,
         PREDICTION_KEY: None,
         ERROR_KEY: None,
+        ERROR_RETRYABLE_KEY: False,
         UPLOADER_VERSION_KEY: 0,
     }
     for key, value in defaults.items():
@@ -120,6 +122,7 @@ def synchronize_selection(uploaded_file: Any | None) -> None:
     st.session_state[SIGNATURE_KEY] = signature
     st.session_state[PREDICTION_KEY] = None
     st.session_state[ERROR_KEY] = None
+    st.session_state[ERROR_RETRYABLE_KEY] = False
 
     try:
         st.session_state[IMAGE_KEY] = validate_uploaded_image(uploaded_file)
@@ -127,6 +130,7 @@ def synchronize_selection(uploaded_file: Any | None) -> None:
     except ImageValidationError as exc:
         st.session_state[IMAGE_KEY] = None
         st.session_state[ERROR_KEY] = str(exc)
+        st.session_state[ERROR_RETRYABLE_KEY] = False
         st.session_state[STATE_KEY] = ERROR
 
 
@@ -136,12 +140,14 @@ def begin_analysis() -> None:
     image = st.session_state[IMAGE_KEY]
     if not isinstance(image, ValidatedImage):
         st.session_state[ERROR_KEY] = "Select a valid image before starting inspection."
+        st.session_state[ERROR_RETRYABLE_KEY] = False
         st.session_state[STATE_KEY] = ERROR
         return
 
     st.session_state[STATE_KEY] = ANALYZING
     st.session_state[PREDICTION_KEY] = None
     st.session_state[ERROR_KEY] = None
+    st.session_state[ERROR_RETRYABLE_KEY] = False
 
 
 def complete_analysis(image: ValidatedImage) -> None:
@@ -155,11 +161,13 @@ def complete_analysis(image: ValidatedImage) -> None:
         st.session_state[STATE_KEY] = SUCCESS
     except PredictionServiceError as exc:
         st.session_state[ERROR_KEY] = str(exc)
+        st.session_state[ERROR_RETRYABLE_KEY] = exc.retryable
         st.session_state[STATE_KEY] = ERROR
     except Exception:
         st.session_state[ERROR_KEY] = (
             "The AI service could not process this image. Please try again."
         )
+        st.session_state[ERROR_RETRYABLE_KEY] = True
         st.session_state[STATE_KEY] = ERROR
 
     st.rerun()
@@ -173,6 +181,7 @@ def clear_interaction(*, advance_uploader: bool = True) -> None:
     st.session_state[SIGNATURE_KEY] = None
     st.session_state[PREDICTION_KEY] = None
     st.session_state[ERROR_KEY] = None
+    st.session_state[ERROR_RETRYABLE_KEY] = False
     if advance_uploader:
         st.session_state[UPLOADER_VERSION_KEY] += 1
 
@@ -194,7 +203,7 @@ def render_error_state() -> None:
     )
 
     image = st.session_state[IMAGE_KEY]
-    if image is not None:
+    if image is not None and st.session_state[ERROR_RETRYABLE_KEY]:
         retry_column, reset_column = st.columns(2)
         with retry_column:
             st.button(
@@ -206,6 +215,9 @@ def render_error_state() -> None:
         with reset_column:
             if st.button("Choose Another Image", width="stretch"):
                 reset_and_rerun()
+    elif image is not None:
+        if st.button("Choose Another Image", type="primary", width="stretch"):
+            reset_and_rerun()
     elif st.button("Try Again", type="primary"):
         reset_and_rerun()
 
@@ -236,6 +248,7 @@ def render_inspection_interface() -> None:
             render_success_state(image, prediction)
         else:
             st.session_state[ERROR_KEY] = "The inspection result is incomplete."
+            st.session_state[ERROR_RETRYABLE_KEY] = False
             st.session_state[STATE_KEY] = ERROR
             render_error_state()
         return
@@ -247,6 +260,7 @@ def render_inspection_interface() -> None:
         image = st.session_state[IMAGE_KEY]
         if not isinstance(image, ValidatedImage):
             st.session_state[ERROR_KEY] = "The selected image is no longer available."
+            st.session_state[ERROR_RETRYABLE_KEY] = False
             st.session_state[STATE_KEY] = ERROR
             st.rerun()
 

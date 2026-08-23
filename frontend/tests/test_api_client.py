@@ -72,6 +72,7 @@ class PredictionServiceTests(unittest.TestCase):
         self.assertEqual(response["prediction"]["class_name"], "Scratches")
         self.assertEqual(response["prediction"]["confidence"], 0.942)
         self.assertEqual(response["prediction"]["recommendation"], "REWORK")
+        self.assertIsNone(response["prediction"]["gradcam_image"])
 
     def test_accepts_every_supported_defect_class(self) -> None:
         for class_name in SUPPORTED_CLASSES:
@@ -139,12 +140,20 @@ class PredictionServiceTests(unittest.TestCase):
                     validate_prediction_response(response)
 
     def test_rejects_invalid_gradcam_references(self) -> None:
-        for value in (None, "", "   ", ["mock_gradcam.png"]):
+        for value in ("", "   ", ["mock_gradcam.png"]):
             with self.subTest(value=value):
                 response = valid_prediction_response()
                 response["prediction"]["gradcam_image"] = value
                 with self.assertRaisesRegex(PredictionServiceError, "Grad-CAM"):
                     validate_prediction_response(response)
+
+    def test_accepts_null_gradcam_during_dummy_stage(self) -> None:
+        response = valid_prediction_response()
+        response["prediction"]["gradcam_image"] = None
+
+        normalized = validate_prediction_response(response)
+
+        self.assertIsNone(normalized["prediction"]["gradcam_image"])
 
     def test_configured_missing_mock_fixture_is_a_safe_failure(self) -> None:
         environment = {

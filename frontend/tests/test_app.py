@@ -12,6 +12,8 @@ from PIL import Image
 import streamlit as st
 from streamlit.testing.v1 import AppTest
 
+from services.api_client import PredictionServiceError
+
 
 APP_PATH = Path(__file__).resolve().parents[1] / "app.py"
 
@@ -142,6 +144,7 @@ class FrontendWorkflowTests(unittest.TestCase):
             self.assertIsNone(state["selected_signature"])
             self.assertIsNone(state["prediction"])
             self.assertIsNone(state["inspection_error"])
+            self.assertFalse(state["inspection_error_retryable"])
             self.assertEqual(len(app.file_uploader), 1)
             self.assertFalse(markdown_contains(app, "INSPECTION RESULT"))
             self.assertEqual(len(app.button), 0)
@@ -165,11 +168,13 @@ class FrontendWorkflowTests(unittest.TestCase):
         self.assertEqual(len([b for b in app.button if b.label == "Analyze Surface"]), 0)
 
     def test_mock_service_failure_preserves_valid_selection_for_retry(self) -> None:
-        environment = {
-            "STEELGUARD_MOCK_DELAY_SECONDS": "0",
-            "STEELGUARD_MOCK_RESPONSE_PATH": "missing/mock-response.json",
-        }
-        with patch.dict(os.environ, environment, clear=False):
+        def fail_prediction(_image):
+            raise PredictionServiceError(
+                "The AI service is temporarily unavailable. Please try again.",
+                category="service",
+            )
+
+        with patch("services.api_client.predict_image", side_effect=fail_prediction):
             app = self.create_app()
             app.file_uploader[0].upload(
                 "steel-surface.png",
@@ -225,6 +230,60 @@ class FrontendWorkflowTests(unittest.TestCase):
             "SUCCESS",
         )
 
+    def test_nullable_mock_gradcam_renders_placeholder(self) -> None:
+        def fake_prediction(_image):
+            return {
+                "success": True,
+                "prediction": {
+                    "class_name": "Scratches",
+                    "confidence": 0.942,
+                    "recommendation": "REWORK",
+                    "gradcam_image": None,
+                },
+            }
+
+        app = self.create_app()
+        app.file_uploader[0].upload(
+            "steel-surface.png",
+            make_png_bytes(),
+            "image/png",
+        ).run()
+
+        with patch("services.api_client.predict_image", side_effect=fake_prediction):
+            next(
+                button for button in app.button if button.label == "Analyze Surface"
+            ).click().run()
+
+        self.assertEqual(len(app.exception), 0)
+        self.assertTrue(
+            markdown_contains(app, "Grad-CAM visualization will appear here")
+        )
+
+    def test_non_retryable_service_failure_requires_replacement(self) -> None:
+        def fail_prediction(_image):
+            raise PredictionServiceError(
+                "Unsupported image format. Choose another image.",
+                category="request",
+                retryable=False,
+            )
+
+        app = self.create_app()
+        app.file_uploader[0].upload(
+            "steel-surface.png",
+            make_png_bytes(),
+            "image/png",
+        ).run()
+
+        with patch("services.api_client.predict_image", side_effect=fail_prediction):
+            next(
+                button for button in app.button if button.label == "Analyze Surface"
+            ).click().run()
+
+        self.assertEqual(len(app.exception), 0)
+        labels = [button.label for button in app.button]
+        self.assertNotIn("Try Again", labels)
+        self.assertIn("Choose Another Image", labels)
+
     def test_valid_replacement_clears_prior_upload_error_and_can_be_removed(self) -> None:
         app = self.create_app()
         app.file_uploader[0].upload(
@@ -257,6 +316,7 @@ class FrontendWorkflowTests(unittest.TestCase):
         self.assertIsNone(state["selected_signature"])
         self.assertIsNone(state["prediction"])
         self.assertIsNone(state["inspection_error"])
+        self.assertFalse(state["inspection_error_retryable"])
 
 
 if __name__ == "__main__":

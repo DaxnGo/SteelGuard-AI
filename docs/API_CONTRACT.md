@@ -124,7 +124,7 @@ Content-Type: application/json
     "class_name": "Scratches",
     "confidence": 0.942,
     "recommendation": "REWORK",
-    "gradcam_image": "<representation to be agreed>"
+    "gradcam_image": null
   }
 }
 ```
@@ -139,12 +139,17 @@ accuracy claim or performance target.
 | `prediction.class_name` | string | Yes | One exact value from Section 4 |
 | `prediction.confidence` | number | Yes | Finite value from `0.0` through `1.0` |
 | `prediction.recommendation` | string | Yes | One exact value from Section 5 |
-| `prediction.gradcam_image` | string | Yes | Non-empty representation selected under Section 7 |
+| `prediction.gradcam_image` | string or null | Yes | `null` during dummy integration; non-empty representation selected under Section 7 for live inference |
 
 A `200 OK` response is valid only when every required field is present and
 valid. The backend must return an error rather than a partial prediction. The
 frontend must treat a malformed `200 OK` body as a contract error and display
 no result.
+
+During dummy integration, `gradcam_image: null` is valid and the frontend
+renders an explicit placeholder. Once D-05 is resolved, a live-inference
+success must return the confirmed non-empty representation; a real Grad-CAM
+failure must return an error instead of `null`.
 
 ### Error response envelope
 
@@ -228,8 +233,9 @@ precision shown in Section 3.
 
 ## 7. Grad-CAM Delivery Strategy
 
-`prediction.gradcam_image` remains a required string, but its representation
-needs confirmation before frontend and backend implementation are finalized.
+`prediction.gradcam_image` remains a required field. It is `null` only during
+dummy integration; its final non-empty string representation needs confirmation
+before frontend and backend implementation are finalized.
 
 > **TBD – Grad-CAM transport must be confirmed by the frontend and backend
 > teams.**

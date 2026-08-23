@@ -490,7 +490,7 @@ Field: file (exactly one JPEG or PNG file)
 | `prediction.class_name` | string | One exact supported class label |
 | `prediction.confidence` | number | Finite value from `0.0` through `1.0` |
 | `prediction.recommendation` | string | `ACCEPT`, `REWORK`, or `REJECT` |
-| `prediction.gradcam_image` | string | Non-empty representation using the confirmed base64 or image-reference transport |
+| `prediction.gradcam_image` | string or null | `null` during dummy integration; non-empty confirmed base64 or image-reference transport for live inference |
 
 The API contract recommends a PNG data URI containing base64-encoded bytes for
 the local Docker Compose MVP, but D-05 remains open until the frontend and

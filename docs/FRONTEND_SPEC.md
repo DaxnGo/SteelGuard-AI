@@ -303,13 +303,13 @@ The API client accepts only these exact, case-sensitive backend values:
 
 | Requirement | Priority |
 | --- | --- |
-| Read a non-empty `prediction.gradcam_image` string from the backend response. | **MUST HAVE** |
+| Require `prediction.gradcam_image`; accept `null` during dummy integration and a non-empty string after the live transport is confirmed. | **MUST HAVE** |
 | Decode a base64 PNG data URI or retrieve an image reference according to the transport option confirmed in the API contract. | **MUST HAVE** |
 | Display the image under a heading such as “Grad-CAM model explanation.” | **MUST HAVE** |
 | Preserve the image aspect ratio and fit it within the result container. | **MUST HAVE** |
 | Provide a visible caption explaining that highlighted regions influenced the model prediction. | **MUST HAVE** |
 | State that Grad-CAM is not a segmentation mask or precise defect boundary. | **MUST HAVE** |
-| Treat a missing, malformed, or undisplayable required Grad-CAM representation as an error; do not fabricate a heatmap. | **MUST HAVE** |
+| Render an explicit placeholder for the dummy `null`; treat a missing, malformed, or undisplayable live Grad-CAM representation as an error and do not fabricate a heatmap. | **MUST HAVE** |
 | Place the original preview and Grad-CAM side by side on sufficiently wide layouts. | **SHOULD HAVE** |
 | Offer an accessible enlarge control if supported without custom interaction complexity. | **OPTIONAL** |
 | Generate or modify Grad-CAM pixels in the frontend. | **OUT OF SCOPE** |
@@ -346,7 +346,7 @@ The API client accepts only these exact, case-sensitive backend values:
 | Confirmed size limit exceeded | Explain the shared limit without attempting upload | Replace selection | **MUST HAVE** |
 | Backend connection failure | Explain that the analysis service could not be reached | Retry or replace | **MUST HAVE** |
 | Request timeout | Explain that analysis did not complete in time | Deliberate retry or replace | **MUST HAVE** |
-| `400`, `415`, or `422` response | Present a concise validation message consistent with the API contract | Replace or retry when appropriate | **MUST HAVE** |
+| `400`, `415`, or `422` response | Present a concise validation message consistent with the API contract | Replace selection; do not retry unchanged invalid input | **MUST HAVE** |
 | `500` response | Explain that analysis failed without exposing internals | Retry or replace | **MUST HAVE** |
 | `503` response | Explain that the analysis service/model is temporarily unavailable | Retry later or replace | **MUST HAVE** |
 | Non-JSON or contract-invalid success body | Treat as an invalid service response; show no result | Retry or report during development | **MUST HAVE** |
@@ -449,7 +449,7 @@ PredictionResult {
     class_name: one supported defect class
     confidence: finite float in [0.0, 1.0]
     recommendation: ACCEPT | REWORK | REJECT
-    gradcam_image: validated non-empty transport string
+    gradcam_image: null in dummy mode | validated non-empty transport string
 }
 ```
 
@@ -458,7 +458,7 @@ PredictionResult {
 | Require `success` to be exactly `true`. | **MUST HAVE** |
 | Require a `prediction` object and validate every field before returning success to `app.py`. | **MUST HAVE** |
 | Reject booleans, NaN, infinity, and out-of-range values as confidence. | **MUST HAVE** |
-| Validate and decode or resolve `gradcam_image` according to the transport option confirmed in the API contract. | **MUST HAVE** |
+| Accept the dummy `null` placeholder value; validate and decode or resolve a non-null `gradcam_image` according to the transport option confirmed in the API contract. | **MUST HAVE** |
 | Validate the stable `success: false` error envelope and map non-success statuses, invalid JSON, and schema violations to normalized client errors. | **MUST HAVE** |
 | Return raw response dictionaries directly to presentation components. | **OUT OF SCOPE** |
 
@@ -468,7 +468,7 @@ PredictionResult {
 
 | Requirement | Priority |
 | --- | --- |
-| Use [`mock/prediction_response.json`](../mock/prediction_response.json) as the canonical response-shape fixture for independent frontend development and contract tests; update its Grad-CAM value when transport is confirmed. | **SHOULD HAVE** |
+| Use [`mock/prediction_response.json`](../mock/prediction_response.json) with `gradcam_image: null` as the canonical dummy fixture; replace that value when the live transport is confirmed. | **SHOULD HAVE** |
 | Inject or stub the API client in tests rather than embedding prediction constants in UI components. | **MUST HAVE** |
 | Keep fixture keys, types, labels, and recommendation values synchronized with the API contract. | **MUST HAVE** |
 | Add invalid-response fixtures for missing fields, unsupported enums, invalid confidence, and invalid Grad-CAM representations. | **SHOULD HAVE** |
@@ -623,9 +623,9 @@ The frontend is done when:
 - [ ] **MUST HAVE** — Missing `success`, non-true `success`, missing
   `prediction`, missing fields, invalid JSON, and non-success statuses become
   normalized errors.
-- [ ] **MUST HAVE** — The confirmed Grad-CAM representation decodes or resolves
-  as specified; malformed or unavailable output does not produce partial
-  success.
+- [ ] **MUST HAVE** — Dummy `gradcam_image: null` renders the honest placeholder;
+  the confirmed live representation decodes or resolves as specified, and
+  malformed or unavailable live output does not produce partial success.
 
 ### Result presentation
 
