@@ -1,4 +1,3 @@
-import base64
 import math
 from enum import Enum
 
@@ -20,9 +19,6 @@ class Recommendation(str, Enum):
     REJECT = "REJECT"
 
 
-GRADCAM_DATA_URI_PREFIX = "data:image/png;base64,"
-
-
 class PredictionDetail(BaseModel):
     class_name: DefectClass
     confidence: float = Field(ge=0.0, le=1.0)
@@ -38,22 +34,13 @@ class PredictionDetail(BaseModel):
             raise ValueError("confidence must be a finite number.")
         return value
 
-    @field_validator("gradcam_image")
+    @field_validator("gradcam_image", mode="before")
     @classmethod
     def validate_gradcam_image(cls, value):
         if value is None:
             return value
-        if not isinstance(value, str) or not value:
-            raise ValueError("gradcam_image must be null or a non-empty base64 string.")
-        encoded = value
-        if encoded.startswith(GRADCAM_DATA_URI_PREFIX):
-            encoded = encoded[len(GRADCAM_DATA_URI_PREFIX):]
-        if not encoded:
-            raise ValueError("gradcam_image must be null or a non-empty base64 string.")
-        try:
-            base64.b64decode(encoded, validate=True)
-        except Exception as exc:
-            raise ValueError("gradcam_image must be a valid base64-encoded string.") from exc
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("gradcam_image must be null or a non-empty string.")
         return value
 
 

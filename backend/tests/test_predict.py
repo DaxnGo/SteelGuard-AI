@@ -1,4 +1,5 @@
 from app.schemas.prediction import DefectClass, Recommendation
+from app.routes import predict as predict_route
 from app.services import prediction_service
 
 
@@ -74,6 +75,43 @@ def test_predict_with_duplicate_file_fields_returns_400(client, valid_jpeg_bytes
     body = response.json()
     assert body["success"] is False
     assert body["error"]["code"] == "MULTIPLE_FILES_NOT_ALLOWED"
+
+
+def test_predict_rejects_second_image_under_another_field(client, valid_jpeg_bytes):
+    response = client.post(
+        "/predict",
+        files=[
+            ("file", ("sample1.jpg", valid_jpeg_bytes, "image/jpeg")),
+            ("other", ("sample2.jpg", valid_jpeg_bytes, "image/jpeg")),
+        ],
+    )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["success"] is False
+    assert body["error"]["code"] == "MULTIPLE_FILES_NOT_ALLOWED"
+
+
+def test_predict_rejects_extra_multipart_field(client, valid_jpeg_bytes):
+    response = client.post(
+        "/predict",
+        files={"file": ("sample.jpg", valid_jpeg_bytes, "image/jpeg")},
+        data={"note": "extra field"},
+    )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["success"] is False
+    assert body["error"]["code"] == "MULTIPLE_FILES_NOT_ALLOWED"
+
+
+def test_predict_openapi_documents_single_multipart_upload(client):
+    operation = client.get("/openapi.json").json()["paths"]["/predict"]["post"]
+
+    request_body = operation["requestBody"]
+    assert "multipart/form-data" in request_body["content"]
+    for status in ("400", "413", "415", "422", "500", "503"):
+        assert status in operation["responses"]
 
 
 def test_predict_with_unsupported_file_type_returns_415(client):
@@ -181,6 +219,7 @@ def test_ai_adapter_invoked_exactly_once_for_valid_request(
 
     assert response.status_code == 200
     assert len(calls) == 1
+    assert calls[0].mode == "RGB"
 
 
 def test_ai_adapter_not_invoked_when_no_file(client, monkeypatch):
@@ -368,7 +407,7 @@ def test_predict_with_invalid_recommendation_returns_503(
     assert "prediction" not in body
 
 
-def test_predict_with_invalid_gradcam_image_returns_503(
+def test_predict_with_empty_gradcam_image_returns_503(
     client,
     monkeypatch,
     valid_jpeg_bytes,
@@ -376,7 +415,7 @@ def test_predict_with_invalid_gradcam_image_returns_503(
     monkeypatch.setattr(
         prediction_service,
         "run_inference",
-        lambda image: _dummy_adapter_output(gradcam_image="not-valid-base64!!"),
+        lambda image: _dummy_adapter_output(gradcam_image=""),
     )
 
     response = client.post(
@@ -389,6 +428,27 @@ def test_predict_with_invalid_gradcam_image_returns_503(
     assert body["success"] is False
     assert body["error"]["code"] == "INFERENCE_FAILED"
     assert "prediction" not in body
+
+
+def test_predict_keeps_gradcam_transport_neutral_until_d05(
+    client,
+    monkeypatch,
+    valid_jpeg_bytes,
+):
+    gradcam_reference = "/gradcam/example.png"
+    monkeypatch.setattr(
+        prediction_service,
+        "run_inference",
+        lambda image: _dummy_adapter_output(gradcam_image=gradcam_reference),
+    )
+
+    response = client.post(
+        "/predict",
+        files={"file": ("sample.jpg", valid_jpeg_bytes, "image/jpeg")},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["prediction"]["gradcam_image"] == gradcam_reference
 
 
 def test_predict_with_incomplete_adapter_output_returns_503(
@@ -414,8 +474,8 @@ def test_predict_with_incomplete_adapter_output_returns_503(
     assert "prediction" not in body
 
 
-def test_predict_when_ai_adapter_raises_unexpected_error_returns_sanitized_500(
-    lenient_client,
+def test_predict_when_ai_adapter_raises_returns_sanitized_503(
+    client,
     monkeypatch,
     valid_jpeg_bytes,
 ):
@@ -424,6 +484,52 @@ def test_predict_when_ai_adapter_raises_unexpected_error_returns_sanitized_500(
 
     monkeypatch.setattr(prediction_service, "run_inference", boom)
 
+    response = client.post(
+        "/predict",
+        files={"file": ("sample.jpg", valid_jpeg_bytes, "image/jpeg")},
+    )
+
+    assert response.status_code == 503
+    body = response.json()
+    assert body == {
+        "success": False,
+        "error": {
+            "code": "INFERENCE_FAILED",
+            "message": "The image could not be analyzed at this time. Please try again.",
+        },
+    }
+    assert "prediction" not in body
+    assert "/srv/models" not in response.text
+    assert "Traceback" not in response.text
+    assert "RuntimeError" not in response.text
+
+
+def test_predict_with_non_mapping_adapter_output_returns_503(
+    client,
+    monkeypatch,
+    valid_jpeg_bytes,
+):
+    monkeypatch.setattr(prediction_service, "run_inference", lambda image: None)
+
+    response = client.post(
+        "/predict",
+        files={"file": ("sample.jpg", valid_jpeg_bytes, "image/jpeg")},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "INFERENCE_FAILED"
+
+
+def test_predict_unexpected_backend_error_returns_sanitized_500(
+    lenient_client,
+    monkeypatch,
+    valid_jpeg_bytes,
+):
+    def boom(file, content):
+        raise RuntimeError("database unavailable at /srv/private/data")
+
+    monkeypatch.setattr(predict_route, "predict_image", boom)
+
     response = lenient_client.post(
         "/predict",
         files={"file": ("sample.jpg", valid_jpeg_bytes, "image/jpeg")},
@@ -431,14 +537,6 @@ def test_predict_when_ai_adapter_raises_unexpected_error_returns_sanitized_500(
 
     assert response.status_code == 500
     body = response.json()
-    assert body == {
-        "success": False,
-        "error": {
-            "code": "INTERNAL_ERROR",
-            "message": "An unexpected server error occurred. Please try again.",
-        },
-    }
-    assert "prediction" not in body
-    assert "/srv/models" not in response.text
-    assert "Traceback" not in response.text
+    assert body["error"]["code"] == "INTERNAL_ERROR"
+    assert "/srv/private" not in response.text
     assert "RuntimeError" not in response.text

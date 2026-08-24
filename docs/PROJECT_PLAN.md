@@ -506,9 +506,9 @@ envelope and never contain a fallback prediction.
 
 | Status | Situation |
 | --- | --- |
-| `400 Bad Request` | Repeated file field, corrupt image, or otherwise invalid request content |
+| `400 Bad Request` | Missing file, repeated multipart field, or otherwise invalid request structure |
 | `415 Unsupported Media Type` | Content is not a supported JPEG or PNG image |
-| `422 Unprocessable Entity` | Required `file` field is missing or malformed |
+| `422 Unprocessable Entity` | Empty, corrupt, undecodable, or otherwise invalid image content |
 | `503 Service Unavailable` | The model, inference, AI output, or Grad-CAM generation is unavailable or failed |
 | `500 Internal Server Error` | An unexpected backend failure occurred outside recognized validation and inference cases |
 

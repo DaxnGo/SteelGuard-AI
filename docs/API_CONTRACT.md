@@ -94,7 +94,7 @@ Content-Type: application/json
 Missing-file response:
 
 ```http
-HTTP/1.1 422 Unprocessable Entity
+HTTP/1.1 400 Bad Request
 Content-Type: application/json
 ```
 
@@ -102,8 +102,8 @@ Content-Type: application/json
 {
   "success": false,
   "error": {
-    "code": "missing_file",
-    "message": "One image file is required."
+    "code": "NO_FILE",
+    "message": "No file was uploaded."
   }
 }
 ```
@@ -119,7 +119,7 @@ Content-Type: application/json
 {
   "success": false,
   "error": {
-    "code": "multiple_files_not_allowed",
+    "code": "MULTIPLE_FILES_NOT_ALLOWED",
     "message": "Only one image may be analyzed per request."
   }
 }
@@ -326,7 +326,7 @@ but is empty, corrupt, unreadable, or cannot be decoded as a valid supported
 image.
 
 ```http
-HTTP/1.1 400 Bad Request
+HTTP/1.1 422 Unprocessable Entity
 Content-Type: application/json
 ```
 
@@ -334,7 +334,7 @@ Content-Type: application/json
 {
   "success": false,
   "error": {
-    "code": "invalid_file",
+    "code": "INVALID_IMAGE",
     "message": "The uploaded file is empty or could not be decoded as a valid image."
   }
 }
@@ -358,7 +358,7 @@ Content-Type: application/json
 {
   "success": false,
   "error": {
-    "code": "unsupported_media_type",
+    "code": "UNSUPPORTED_FILE_TYPE",
     "message": "Only JPEG and PNG images are supported."
   }
 }
@@ -383,7 +383,7 @@ Content-Type: application/json
 {
   "success": false,
   "error": {
-    "code": "inference_failed",
+    "code": "INFERENCE_FAILED",
     "message": "The image could not be analyzed at this time. Please try again."
   }
 }
@@ -411,7 +411,7 @@ Content-Type: application/json
 {
   "success": false,
   "error": {
-    "code": "internal_server_error",
+    "code": "INTERNAL_ERROR",
     "message": "An unexpected server error occurred. Please try again."
   }
 }

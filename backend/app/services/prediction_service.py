@@ -18,14 +18,23 @@ class InferenceError(Exception):
 def predict_image(file: UploadFile, content: bytes) -> PredictionResponse:
     validate_image(file, content)
 
-    with Image.open(BytesIO(content)) as decoded_image:
-        rgb_image = decoded_image.convert("RGB")
-
-    result = run_inference(rgb_image)
+    try:
+        with Image.open(BytesIO(content)) as decoded_image:
+            rgb_image = decoded_image.convert("RGB")
+    except (OSError, ValueError) as exc:
+        raise ImageValidationError(
+            "INVALID_IMAGE",
+            "The uploaded file could not be processed as an image.",
+        ) from exc
 
     try:
-        prediction = PredictionDetail(**result)
-    except ValidationError as exc:
+        result = run_inference(rgb_image)
+    except Exception as exc:
+        raise InferenceError("AI inference failed.") from exc
+
+    try:
+        prediction = PredictionDetail.model_validate(result)
+    except (TypeError, ValidationError) as exc:
         raise InferenceError("The AI adapter returned an invalid prediction.") from exc
 
     return PredictionResponse(prediction=prediction)

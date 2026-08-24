@@ -1,12 +1,17 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, File, Request, UploadFile
 from fastapi.responses import JSONResponse
-from starlette.datastructures import UploadFile
+from starlette.datastructures import UploadFile as StarletteUploadFile
 
-from app.schemas.prediction import PredictionResponse
+from app.schemas.prediction import ErrorResponse, PredictionResponse
 from app.services.prediction_service import InferenceError, predict_image
 from app.utils.image_validation import ImageValidationError, load_max_upload_bytes
 
 router = APIRouter()
+
+ERROR_RESPONSES = {
+    status_code: {"model": ErrorResponse}
+    for status_code in (400, 413, 415, 422, 500, 503)
+}
 
 
 def error_response(status_code: int, code: str, message: str) -> JSONResponse:
@@ -16,25 +21,40 @@ def error_response(status_code: int, code: str, message: str) -> JSONResponse:
     )
 
 
-@router.post("/predict", response_model=PredictionResponse)
-async def predict(request: Request):
+@router.post(
+    "/predict",
+    response_model=PredictionResponse,
+    responses=ERROR_RESPONSES,
+)
+async def predict(
+    request: Request,
+    file: UploadFile | None = File(default=None),
+):
     try:
         form = await request.form()
     except Exception:
         return error_response(400, "NO_FILE", "No file was uploaded.")
 
-    files = form.getlist("file")
-    if not files:
+    parts = list(form.multi_items())
+    uploaded_parts = [
+        (field_name, value)
+        for field_name, value in parts
+        if isinstance(value, StarletteUploadFile)
+    ]
+    named_files = [
+        value for field_name, value in uploaded_parts if field_name == "file"
+    ]
+    if not named_files:
         return error_response(400, "NO_FILE", "No file was uploaded.")
-    if len(files) > 1:
+    if len(parts) != 1 or len(uploaded_parts) != 1 or len(named_files) != 1:
         return error_response(
             400,
             "MULTIPLE_FILES_NOT_ALLOWED",
             "Only one image may be analyzed per request.",
         )
 
-    file = files[0]
-    if not isinstance(file, UploadFile) or not file.filename:
+    file = named_files[0]
+    if not file.filename:
         return error_response(400, "NO_FILE", "No file was uploaded.")
 
     try:
