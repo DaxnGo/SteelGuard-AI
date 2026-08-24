@@ -1,65 +1,91 @@
-# AI Foundation
+# NEU-DET Steel Surface Defect Detection API
 
-The AI subsystem will perform single-image steel surface defect inference for
-the FastAPI backend. The deep-learning framework and model architecture remain
-owned by the AI team. This directory intentionally contains no model or
-inference implementation in the foundation phase.
+Pipeline inferensi YOLOv8 untuk deteksi cacat permukaan baja. Mendukung 6 jenis cacat: **crazing**, **inclusion**, **patches**, **pitted_surface**, **rolled-in_scale**, **scratches**.
 
-## Required responsibilities
+## Quick Start
 
-For one decoded steel image, the AI team must provide:
+```bash
+# Build & run
+docker compose up --build
 
-- documented preprocessing, including color space, resize/crop behavior, and
-  normalization expected by the trained model;
-- one class label from the exact supported label set;
-- a confidence value from `0.0` through `1.0`, with its interpretation and any
-  calibration documented;
-- a Grad-CAM visualization aligned with the submitted image;
-- one quality recommendation: `ACCEPT`, `REWORK`, or `REJECT`;
-- explicit exceptions or failure results for invalid input, unavailable model
-  artifacts, and inference failures.
+# API tersedia di http://localhost:8000
+# Dokumentasi Swagger di http://localhost:8000/docs
+```
 
-Supported labels:
+## API Endpoints
 
-1. Crazing
-2. Inclusion
-3. Patches
-4. Pitted Surface
-5. Rolled-in Scale
-6. Scratches
+### `GET /health`
+Health check — status API dan model.
 
-## Backend-facing adapter
+```bash
+curl http://localhost:8000/health
+```
 
-Expose a framework-independent Python boundary that accepts one decoded RGB
-image and returns one result with these logical fields:
+### `POST /predict`
+Deteksi cacat pada gambar. Mengembalikan JSON dengan bounding box, kelas, dan confidence.
 
-```text
-predict(image) -> {
-    class_name,
-    confidence,
-    recommendation,
-    gradcam_artifact
+```bash
+curl -X POST http://localhost:8000/predict \
+  -F "file=@path/to/image.jpg"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "detections": [
+    {
+      "class_id": 5,
+      "class_name": "scratches",
+      "confidence": 0.92,
+      "bbox": {
+        "x_min": 10.5,
+        "y_min": 20.3,
+        "x_max": 180.0,
+        "y_max": 190.7
+      }
+    }
+  ],
+  "count": 1,
+  "inference_time_ms": 45.2,
+  "image_width": 200,
+  "image_height": 200
 }
 ```
 
-The concrete model can use any deep-learning framework, but framework-specific
-tensors must not leak into the FastAPI response layer. Load the model once per
-backend process where practical; do not reload it for every prediction.
+### `POST /predict/annotated`
+Deteksi cacat dan mengembalikan gambar dengan bounding box yang digambar.
 
-The AI team owns label-index mapping and recommendation policy. The backend
-serializes the returned values, while the frontend only displays them.
+```bash
+curl -X POST http://localhost:8000/predict/annotated \
+  -F "file=@path/to/image.jpg" \
+  --output result.jpg
+```
 
-## Integration evidence to provide
+## Environment Variables
 
-- Model artifact version and checksum.
-- Reproducible environment and dependency requirements.
-- Preprocessing and label-map documentation.
-- Unit tests for output types, label membership, confidence bounds, and
-  Grad-CAM generation.
-- Representative validation for all six classes and documented known limits.
-- Expected inference latency and hardware assumptions for deployment planning.
+| Variable | Default | Description |
+|---|---|---|
+| `MODEL_PATH` | `/app/model/best.pt` | Path ke model YOLOv8 |
+| `CONF_THRESHOLD` | `0.25` | Minimum confidence score |
+| `IOU_THRESHOLD` | `0.45` | IoU threshold untuk NMS |
 
-## Out of scope for the preliminary MVP
+## Project Structure
 
-Do not expose an HTTP API from this subsystem, implement batch inference,
-persist user images or results, or add frontend decision logic.
+```
+.
+├── app/
+│   ├── __init__.py
+│   ├── main.py          # FastAPI endpoints
+│   ├── inference.py     # YOLOv8 model engine
+│   └── schemas.py       # Pydantic response models
+├── best.pt              # Trained YOLOv8 model
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
+└── README.md
+```
+
+## Supported Image Formats
+
+JPEG, PNG, BMP, TIFF

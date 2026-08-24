@@ -1,0 +1,17 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: neu-det-api
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_PATH=/app/model/best.pt
+      - CONF_THRESHOLD=0.25
+      - IOU_THRESHOLD=0.45
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
