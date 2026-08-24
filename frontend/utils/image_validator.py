@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from io import BytesIO
+import os
 from pathlib import Path
-from typing import Protocol
+from typing import Mapping, Protocol
 import warnings
 
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -21,6 +22,7 @@ MEDIA_TYPES = {
     "JPEG": "image/jpeg",
     "PNG": "image/png",
 }
+MAX_UPLOAD_BYTES_ENV = "STEELGUARD_MAX_UPLOAD_BYTES"
 
 
 class UploadedFileLike(Protocol):
@@ -34,6 +36,10 @@ class UploadedFileLike(Protocol):
 
 class ImageValidationError(ValueError):
     """A safe validation failure that can be shown to the user."""
+
+
+class UploadLimitConfigurationError(ImageValidationError):
+    """A safe error for a missing or invalid shared upload-size limit."""
 
 
 @dataclass(frozen=True)
@@ -64,10 +70,19 @@ def validate_uploaded_image(image_file: UploadedFileLike | None) -> ValidatedIma
     except (AttributeError, OSError, ValueError) as exc:
         raise ImageValidationError("The selected image could not be read.") from exc
 
-    return validate_image_bytes(filename, data)
+    return validate_image_bytes(
+        filename,
+        data,
+        max_upload_bytes=load_max_upload_bytes(),
+    )
 
 
-def validate_image_bytes(filename: str, data: bytes) -> ValidatedImage:
+def validate_image_bytes(
+    filename: str,
+    data: bytes,
+    *,
+    max_upload_bytes: int | None = None,
+) -> ValidatedImage:
     """Validate encoded bytes without changing the bytes sent for inference."""
 
     extension = Path(filename).suffix.lower()
@@ -76,6 +91,13 @@ def validate_image_bytes(filename: str, data: bytes) -> ValidatedImage:
 
     if not data:
         raise ImageValidationError("The selected image is empty. Choose another image.")
+
+    if max_upload_bytes is not None and len(data) > max_upload_bytes:
+        raise ImageValidationError(
+            "The selected image exceeds the "
+            f"{format_file_size(max_upload_bytes)} upload limit. "
+            "Choose a smaller image."
+        )
 
     try:
         with warnings.catch_warnings():
@@ -125,3 +147,42 @@ def validate_image_bytes(filename: str, data: bytes) -> ValidatedImage:
         image_format=detected_format,
         media_type=MEDIA_TYPES[detected_format],
     )
+
+
+def load_max_upload_bytes(
+    environ: Mapping[str, str] | None = None,
+    *,
+    required: bool = False,
+) -> int | None:
+    """Return the shared D-04 upload limit when it is configured."""
+
+    values = os.environ if environ is None else environ
+    raw_value = values.get(MAX_UPLOAD_BYTES_ENV)
+    if raw_value is None or not raw_value.strip():
+        if required:
+            raise UploadLimitConfigurationError(
+                f"{MAX_UPLOAD_BYTES_ENV} is required when mock mode is disabled."
+            )
+        return None
+
+    try:
+        value = int(raw_value)
+    except ValueError as exc:
+        raise UploadLimitConfigurationError(
+            f"{MAX_UPLOAD_BYTES_ENV} must be a positive whole number of bytes."
+        ) from exc
+    if value <= 0:
+        raise UploadLimitConfigurationError(
+            f"{MAX_UPLOAD_BYTES_ENV} must be a positive whole number of bytes."
+        )
+    return value
+
+
+def format_file_size(size_bytes: int) -> str:
+    """Return a compact human-readable byte count."""
+
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    if size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    return f"{size_bytes / (1024 * 1024):.1f} MB"

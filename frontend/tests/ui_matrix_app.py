@@ -65,6 +65,7 @@ def render_scenario(scenario: ResponseScenario, image: ValidatedImage) -> None:
         st.session_state[production_app.PREDICTION_KEY] = None
         st.session_state[production_app.ERROR_KEY] = str(exc)
         st.session_state[production_app.ERROR_RETRYABLE_KEY] = exc.retryable
+        st.session_state[production_app.ERROR_CATEGORY_KEY] = exc.category
         render_image_preview(image)
         production_app.render_error_state()
         return
@@ -74,6 +75,7 @@ def render_scenario(scenario: ResponseScenario, image: ValidatedImage) -> None:
     st.session_state[production_app.PREDICTION_KEY] = response["prediction"]
     st.session_state[production_app.ERROR_KEY] = None
     st.session_state[production_app.ERROR_RETRYABLE_KEY] = False
+    st.session_state[production_app.ERROR_CATEGORY_KEY] = None
     production_app.render_success_state(image, response["prediction"])
 
 

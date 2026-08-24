@@ -41,7 +41,7 @@ def render_gradcam_view(image: ValidatedImage, gradcam_reference: str | None) ->
 
     with original_column:
         with st.container(border=True):
-            st.markdown("#### Original Image")
+            st.markdown("### Original Image")
             st.image(
                 image.preview,
                 caption=f"Uploaded steel surface — {image.filename}",
@@ -50,7 +50,7 @@ def render_gradcam_view(image: ValidatedImage, gradcam_reference: str | None) ->
 
     with gradcam_column:
         with st.container(border=True):
-            st.markdown("#### AI Attention Map")
+            st.markdown("### AI Attention Map")
             gradcam_path = find_local_gradcam(gradcam_reference)
             if gradcam_path is not None:
                 st.image(
@@ -62,7 +62,7 @@ def render_gradcam_view(image: ValidatedImage, gradcam_reference: str | None) ->
                 st.markdown(
                     '<div class="gradcam-placeholder" role="img" '
                     'aria-label="Grad-CAM visualization is not available in mock mode">'
-                    '<span class="gradcam-placeholder-icon">AI</span>'
+                    '<span class="gradcam-placeholder-icon" aria-hidden="true">AI</span>'
                     '<strong>Grad-CAM visualization will appear here.</strong>'
                     '<span>The mock response does not include a generated heatmap.</span>'
                     "</div>",

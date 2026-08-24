@@ -4,7 +4,7 @@
 >
 > **Frontend:** Python, Streamlit, Requests, Pillow, and custom CSS
 >
-> **Repository status:** The mock-driven preliminary frontend MVP and configurable API client boundary are implemented. Phase 2 dummy FastAPI integration is reproducibly smoke-tested; real AI integration remains planned.
+> **Repository status:** The frontend MVP, configurable live client, shared upload-limit enforcement, full dummy FastAPI UI smoke flow, and live HTTP error tests are implemented. Final D-04 values and real AI integration remain pending.
 
 The frontend is a presentation client. It owns user interaction, current-page
 state, HTTP orchestration, and display of backend AI results. It does not own

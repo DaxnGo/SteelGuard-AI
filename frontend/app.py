@@ -19,6 +19,7 @@ from services.api_client import (
 )
 from utils.image_validator import (
     ImageValidationError,
+    UploadLimitConfigurationError,
     ValidatedImage,
     validate_uploaded_image,
 )
@@ -39,6 +40,7 @@ SIGNATURE_KEY = "selected_signature"
 PREDICTION_KEY = "prediction"
 ERROR_KEY = "inspection_error"
 ERROR_RETRYABLE_KEY = "inspection_error_retryable"
+ERROR_CATEGORY_KEY = "inspection_error_category"
 UPLOADER_VERSION_KEY = "uploader_version"
 
 
@@ -60,6 +62,7 @@ def initialize_session_state() -> None:
         PREDICTION_KEY: None,
         ERROR_KEY: None,
         ERROR_RETRYABLE_KEY: False,
+        ERROR_CATEGORY_KEY: None,
         UPLOADER_VERSION_KEY: 0,
     }
     for key, value in defaults.items():
@@ -123,6 +126,7 @@ def synchronize_selection(uploaded_file: Any | None) -> None:
     st.session_state[PREDICTION_KEY] = None
     st.session_state[ERROR_KEY] = None
     st.session_state[ERROR_RETRYABLE_KEY] = False
+    st.session_state[ERROR_CATEGORY_KEY] = None
 
     try:
         st.session_state[IMAGE_KEY] = validate_uploaded_image(uploaded_file)
@@ -131,6 +135,11 @@ def synchronize_selection(uploaded_file: Any | None) -> None:
         st.session_state[IMAGE_KEY] = None
         st.session_state[ERROR_KEY] = str(exc)
         st.session_state[ERROR_RETRYABLE_KEY] = False
+        st.session_state[ERROR_CATEGORY_KEY] = (
+            "configuration"
+            if isinstance(exc, UploadLimitConfigurationError)
+            else "request"
+        )
         st.session_state[STATE_KEY] = ERROR
 
 
@@ -141,6 +150,7 @@ def begin_analysis() -> None:
     if not isinstance(image, ValidatedImage):
         st.session_state[ERROR_KEY] = "Select a valid image before starting inspection."
         st.session_state[ERROR_RETRYABLE_KEY] = False
+        st.session_state[ERROR_CATEGORY_KEY] = "request"
         st.session_state[STATE_KEY] = ERROR
         return
 
@@ -148,26 +158,30 @@ def begin_analysis() -> None:
     st.session_state[PREDICTION_KEY] = None
     st.session_state[ERROR_KEY] = None
     st.session_state[ERROR_RETRYABLE_KEY] = False
+    st.session_state[ERROR_CATEGORY_KEY] = None
 
 
 def complete_analysis(image: ValidatedImage) -> None:
-    """Run exactly one mock prediction and move to SUCCESS or ERROR."""
+    """Run exactly one configured prediction and move to SUCCESS or ERROR."""
 
     try:
-        with st.spinner("Analyzing steel surface..."):
-            st.caption("Running AI inference")
+        with st.spinner("Analyzing steel surface…"):
+            st.caption("Running AI inference…")
             response = predict_image(image)
         st.session_state[PREDICTION_KEY] = response["prediction"]
+        st.session_state[ERROR_CATEGORY_KEY] = None
         st.session_state[STATE_KEY] = SUCCESS
     except PredictionServiceError as exc:
         st.session_state[ERROR_KEY] = str(exc)
         st.session_state[ERROR_RETRYABLE_KEY] = exc.retryable
+        st.session_state[ERROR_CATEGORY_KEY] = exc.category
         st.session_state[STATE_KEY] = ERROR
     except Exception:
         st.session_state[ERROR_KEY] = (
             "The AI service could not process this image. Please try again."
         )
         st.session_state[ERROR_RETRYABLE_KEY] = True
+        st.session_state[ERROR_CATEGORY_KEY] = "service"
         st.session_state[STATE_KEY] = ERROR
 
     st.rerun()
@@ -182,6 +196,7 @@ def clear_interaction(*, advance_uploader: bool = True) -> None:
     st.session_state[PREDICTION_KEY] = None
     st.session_state[ERROR_KEY] = None
     st.session_state[ERROR_RETRYABLE_KEY] = False
+    st.session_state[ERROR_CATEGORY_KEY] = None
     if advance_uploader:
         st.session_state[UPLOADER_VERSION_KEY] += 1
 
@@ -203,7 +218,20 @@ def render_error_state() -> None:
     )
 
     image = st.session_state[IMAGE_KEY]
-    if image is not None and st.session_state[ERROR_RETRYABLE_KEY]:
+    retryable = st.session_state[ERROR_RETRYABLE_KEY]
+    category = st.session_state[ERROR_CATEGORY_KEY]
+    if category == "configuration":
+        st.info(
+            "Contact the system administrator to correct the live API settings, "
+            "then restart the inspection application."
+        )
+        if st.button("Reset Inspection", type="primary"):
+            reset_and_rerun()
+    elif image is not None and retryable:
+        st.info(
+            "Keep this image selected. Check that the analysis service is "
+            "available, then try again."
+        )
         retry_column, reset_column = st.columns(2)
         with retry_column:
             st.button(
@@ -216,10 +244,13 @@ def render_error_state() -> None:
             if st.button("Choose Another Image", width="stretch"):
                 reset_and_rerun()
     elif image is not None:
+        st.info("Choose another image that meets the upload requirements.")
         if st.button("Choose Another Image", type="primary", width="stretch"):
             reset_and_rerun()
-    elif st.button("Try Again", type="primary"):
-        reset_and_rerun()
+    else:
+        st.info("Select a new JPG, JPEG, or PNG image to continue.")
+        if st.button("Choose Image", type="primary"):
+            reset_and_rerun()
 
 
 def render_success_state(image: ValidatedImage, prediction: dict[str, Any]) -> None:
@@ -249,6 +280,7 @@ def render_inspection_interface() -> None:
         else:
             st.session_state[ERROR_KEY] = "The inspection result is incomplete."
             st.session_state[ERROR_RETRYABLE_KEY] = False
+            st.session_state[ERROR_CATEGORY_KEY] = "invalid_response"
             st.session_state[STATE_KEY] = ERROR
             render_error_state()
         return
@@ -261,6 +293,7 @@ def render_inspection_interface() -> None:
         if not isinstance(image, ValidatedImage):
             st.session_state[ERROR_KEY] = "The selected image is no longer available."
             st.session_state[ERROR_RETRYABLE_KEY] = False
+            st.session_state[ERROR_CATEGORY_KEY] = "request"
             st.session_state[STATE_KEY] = ERROR
             st.rerun()
 

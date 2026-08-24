@@ -4,17 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from utils.image_validator import ValidatedImage
-
-
-def format_file_size(size_bytes: int) -> str:
-    """Return a compact human-readable file size."""
-
-    if size_bytes < 1024:
-        return f"{size_bytes} B"
-    if size_bytes < 1024 * 1024:
-        return f"{size_bytes / 1024:.1f} KB"
-    return f"{size_bytes / (1024 * 1024):.1f} MB"
+from utils.image_validator import ValidatedImage, format_file_size
 
 
 def render_image_preview(image: ValidatedImage) -> None:

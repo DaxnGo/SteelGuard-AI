@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 
 from app.schemas.prediction import PredictionResponse
 from app.services.prediction_service import predict_image
-from app.utils.image_validation import ImageValidationError
+from app.utils.image_validation import ImageValidationError, load_max_upload_bytes
 
 router = APIRouter()
 
@@ -20,9 +20,26 @@ async def predict(file: UploadFile | None = File(None)):
     if file is None or not file.filename:
         return error_response(400, "NO_FILE", "No file was uploaded.")
 
-    content = await file.read()
+    try:
+        max_upload_bytes = load_max_upload_bytes()
+    except ValueError:
+        return error_response(
+            500,
+            "INTERNAL_ERROR",
+            "The upload limit is not configured correctly.",
+        )
+
+    content = await file.read(
+        max_upload_bytes + 1 if max_upload_bytes is not None else -1
+    )
     if not content:
         return error_response(400, "NO_FILE", "No file was uploaded.")
+    if max_upload_bytes is not None and len(content) > max_upload_bytes:
+        return error_response(
+            413,
+            "FILE_TOO_LARGE",
+            "The uploaded image exceeds the configured size limit.",
+        )
 
     try:
         return predict_image(file, content)

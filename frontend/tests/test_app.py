@@ -60,8 +60,9 @@ class FrontendWorkflowTests(unittest.TestCase):
             "STEELGUARD_API_BASE_URL": "http://backend.test:8000",
             "STEELGUARD_API_CONNECT_TIMEOUT_SECONDS": "1",
             "STEELGUARD_API_READ_TIMEOUT_SECONDS": "8",
+            "STEELGUARD_MAX_UPLOAD_BYTES": str(1024 * 1024),
         }
-        with patch.dict(os.environ, environment, clear=True):
+        with patch.dict(os.environ, environment, clear=False):
             app = self.create_app()
 
         self.assertEqual(len(app.exception), 0)
@@ -145,6 +146,7 @@ class FrontendWorkflowTests(unittest.TestCase):
             self.assertIsNone(state["prediction"])
             self.assertIsNone(state["inspection_error"])
             self.assertFalse(state["inspection_error_retryable"])
+            self.assertIsNone(state["inspection_error_category"])
             self.assertEqual(len(app.file_uploader), 1)
             self.assertFalse(markdown_contains(app, "INSPECTION RESULT"))
             self.assertEqual(len(app.button), 0)
@@ -164,7 +166,7 @@ class FrontendWorkflowTests(unittest.TestCase):
             "ERROR",
         )
         self.assertIsNone(app.session_state.filtered_state["selected_image"])
-        self.assertIn("Try Again", [button.label for button in app.button])
+        self.assertIn("Choose Image", [button.label for button in app.button])
         self.assertEqual(len([b for b in app.button if b.label == "Analyze Surface"]), 0)
 
     def test_mock_service_failure_preserves_valid_selection_for_retry(self) -> None:
@@ -317,6 +319,7 @@ class FrontendWorkflowTests(unittest.TestCase):
         self.assertIsNone(state["prediction"])
         self.assertIsNone(state["inspection_error"])
         self.assertFalse(state["inspection_error_retryable"])
+        self.assertIsNone(state["inspection_error_category"])
 
 
 if __name__ == "__main__":

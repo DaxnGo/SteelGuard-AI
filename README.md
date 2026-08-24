@@ -62,12 +62,13 @@ uvicorn app.main:app --app-dir backend --reload --port 8000
 ```
 
 For a local FE-to-BE smoke test, set `STEELGUARD_USE_MOCK_API=false`,
-`STEELGUARD_API_BASE_URL=http://localhost:8000`, and positive connection/read
-timeouts before starting Streamlit. The timeout values are temporary dummy
-integration settings, not the final D-04 decision.
+`STEELGUARD_API_BASE_URL=http://localhost:8000`, positive connection/read
+timeouts, and one positive `STEELGUARD_MAX_UPLOAD_BYTES` value before starting
+Streamlit. Smoke-test values are temporary and are not the final D-04 decision.
 
 To run the reproducible Phase 2 check, which starts a temporary dummy backend
-and calls it through the real frontend API client:
+and completes the upload, Analyze, and result flow through the production
+Streamlit application:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/phase2_smoke_test.py

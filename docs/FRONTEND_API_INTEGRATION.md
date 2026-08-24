@@ -48,6 +48,7 @@ multipart requests, or catch Requests exceptions.
 | `STEELGUARD_API_BASE_URL` | Ignored | Required | Credential-free HTTP(S) backend base URL; `/predict` is appended by the client |
 | `STEELGUARD_API_CONNECT_TIMEOUT_SECONDS` | Ignored | Required | Explicit positive Requests connection timeout |
 | `STEELGUARD_API_READ_TIMEOUT_SECONDS` | Ignored | Required | Explicit positive Requests response/read timeout |
+| `STEELGUARD_MAX_UPLOAD_BYTES` | Optional | Required | Shared positive whole-byte FE/BE upload limit |
 | `STEELGUARD_MOCK_RESPONSE_PATH` | Optional | Ignored | Override the canonical mock fixture path for development |
 | `STEELGUARD_MOCK_DELAY_SECONDS` | Optional; defaults to `0.6` | Ignored | Keep the local loading state visible; clamped from `0` to `3` seconds |
 
@@ -95,6 +96,7 @@ against the confirmed deployment configuration.
 | Connection refused | Safe `connection` error; no prediction |
 | Timeout | Safe `timeout` error; no prediction and no automatic retry |
 | HTTP `400` | Image-processing request error |
+| HTTP `413` | Image exceeds the shared upload-size limit |
 | HTTP `415` | Unsupported image-format error |
 | HTTP `422` | Backend image-validation error |
 | HTTP `500` | Internal service error |
@@ -118,7 +120,7 @@ When the real AI service and deployment settings become available:
 - [ ] Confirm the final Grad-CAM transport representation.
 - [ ] Require a non-empty Grad-CAM representation in live mode after transport
       confirmation; retain `null` only for the dummy stage.
-- [ ] Resolve D-04 and record approved connection/read timeout values.
+- [ ] Resolve D-04 and record approved upload-size and timeout values.
 - [ ] Verify the backend accepts exactly one multipart field named `file`.
 - [ ] Set `STEELGUARD_USE_MOCK_API=false` in the target environment.
 - [ ] Set `STEELGUARD_API_BASE_URL` without `/predict` and without credentials.
@@ -126,8 +128,8 @@ When the real AI service and deployment settings become available:
 - [x] Add the backend service and health dependency to Docker Compose.
 - [x] Run API-client tests against mocked transport.
 - [x] Run contract tests against the FastAPI test application.
-- [x] Run the reproducible frontend-to-dummy-backend smoke test with a known test image.
-- [ ] Verify connection, timeout, `400`, `415`, `422`, `500`, `503`, malformed
-      JSON, and contract-invalid responses.
+- [x] Run the reproducible full Streamlit-to-dummy-backend smoke test with a known test image.
+- [x] Verify timeout, `400`, `413`, `415`, `422`, `500`, `503`, malformed JSON,
+      and contract-invalid responses through live HTTP fault injection.
 - [x] Confirm a failed real request never produces mock output.
 - [x] Keep `app.py` and all presentation components unchanged for backend hookup.

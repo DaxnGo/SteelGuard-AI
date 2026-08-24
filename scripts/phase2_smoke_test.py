@@ -1,4 +1,4 @@
-"""Verify the real frontend client against the Phase 2 dummy backend."""
+"""Verify the full Streamlit workflow against the Phase 2 dummy backend."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from urllib.error import URLError
 from urllib.request import urlopen
 
 from PIL import Image
+from streamlit.testing.v1 import AppTest
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -49,6 +50,10 @@ def _image_bytes() -> bytes:
     return buffer.getvalue()
 
 
+def _markdown_contains(app: AppTest, text: str) -> bool:
+    return any(text in element.value for element in app.markdown)
+
+
 def main() -> None:
     port = _free_port()
     base_url = f"http://127.0.0.1:{port}"
@@ -73,7 +78,6 @@ def main() -> None:
     try:
         _wait_for_health(process, f"{base_url}/health")
         sys.path.insert(0, str(FRONTEND_DIRECTORY))
-        from services.api_client import predict_image
         from utils.image_validator import validate_image_bytes
 
         image = validate_image_bytes("phase2-smoke.png", _image_bytes())
@@ -83,21 +87,51 @@ def main() -> None:
             # Temporary smoke-test values; final D-04 values remain a team decision.
             "STEELGUARD_API_CONNECT_TIMEOUT_SECONDS": "2",
             "STEELGUARD_API_READ_TIMEOUT_SECONDS": "10",
+            "STEELGUARD_MAX_UPLOAD_BYTES": str(1024 * 1024),
         }
-        with patch.dict(os.environ, environment, clear=True):
-            response = predict_image(image)
+        with patch.dict(os.environ, environment, clear=False):
+            app = AppTest.from_file(
+                FRONTEND_DIRECTORY / "app.py",
+                default_timeout=15,
+            ).run()
+            app.file_uploader[0].upload(
+                image.filename,
+                image.data,
+                image.media_type,
+            ).run()
+            next(
+                button for button in app.button if button.label == "Analyze Surface"
+            ).click().run()
 
-        prediction = response["prediction"]
+        if len(app.exception):
+            raise AssertionError(f"Streamlit raised an exception: {app.exception}")
+        if app.session_state.filtered_state["inspection_state"] != "SUCCESS":
+            raise AssertionError("The Streamlit workflow did not reach SUCCESS.")
+
+        prediction = app.session_state.filtered_state["prediction"]
         expected = {
             "class_name": "Scratches",
             "confidence": 0.942,
             "recommendation": "REWORK",
             "gradcam_image": None,
         }
-        if response.get("success") is not True or prediction != expected:
-            raise AssertionError(f"Unexpected dummy prediction: {response!r}")
-        print("Phase 2 smoke test passed: Streamlit client -> FastAPI dummy /predict")
-        print(f"Validated response: {response}")
+        if prediction != expected:
+            raise AssertionError(f"Unexpected dummy prediction: {prediction!r}")
+        for expected_text in ("LIVE API MODE", "Scratches", "94.2%", "REWORK"):
+            if not _markdown_contains(app, expected_text):
+                raise AssertionError(f"The UI did not render {expected_text!r}.")
+
+        with patch.dict(os.environ, environment, clear=False):
+            next(
+                button
+                for button in app.button
+                if button.label == "Analyze Another Image"
+            ).click().run()
+        if app.session_state.filtered_state["inspection_state"] != "EMPTY":
+            raise AssertionError("The Streamlit workflow did not reset to EMPTY.")
+
+        print("Phase 2 UI smoke test passed: Streamlit -> FastAPI dummy /predict")
+        print(f"Validated prediction: {prediction}")
     finally:
         process.terminate()
         try:

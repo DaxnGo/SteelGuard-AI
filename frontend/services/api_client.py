@@ -18,7 +18,13 @@ from urllib.parse import urlparse
 
 import requests
 
-from utils.image_validator import ValidatedImage
+from utils.image_validator import (
+    MAX_UPLOAD_BYTES_ENV,
+    UploadLimitConfigurationError,
+    ValidatedImage,
+    format_file_size,
+    load_max_upload_bytes,
+)
 
 
 SUPPORTED_CLASSES = frozenset(
@@ -76,6 +82,7 @@ class APIClientConfig:
     api_base_url: str | None = None
     connect_timeout_seconds: float | None = None
     read_timeout_seconds: float | None = None
+    max_upload_bytes: int | None = None
 
     @property
     def prediction_url(self) -> str:
@@ -131,6 +138,17 @@ def predict_image(image_file: ValidatedImage) -> PredictionResponse:
         )
 
     config = load_api_client_config()
+    if (
+        config.max_upload_bytes is not None
+        and len(image_file.data) > config.max_upload_bytes
+    ):
+        raise PredictionServiceError(
+            "The selected image exceeds the "
+            f"{format_file_size(config.max_upload_bytes)} upload limit. "
+            "Choose a smaller image.",
+            category="request",
+            retryable=False,
+        )
     if config.use_mock_api:
         raw_response = _predict_with_mock()
     else:
@@ -161,11 +179,20 @@ def load_api_client_config(
         values.get(READ_TIMEOUT_ENV),
         variable_name=READ_TIMEOUT_ENV,
     )
+    try:
+        max_upload_bytes = load_max_upload_bytes(values, required=True)
+    except UploadLimitConfigurationError as exc:
+        raise PredictionServiceError(
+            str(exc),
+            category="configuration",
+            retryable=False,
+        ) from exc
     return APIClientConfig(
         use_mock_api=False,
         api_base_url=api_base_url,
         connect_timeout_seconds=connect_timeout,
         read_timeout_seconds=read_timeout,
+        max_upload_bytes=max_upload_bytes,
     )
 
 
@@ -322,6 +349,13 @@ def _raise_for_http_status(status_code: int) -> None:
     if status_code == 422:
         raise PredictionServiceError(
             "The AI service could not validate this image. Choose another image.",
+            category="request",
+            retryable=False,
+        )
+    if status_code == 413:
+        raise PredictionServiceError(
+            "The selected image is larger than the service allows. "
+            "Choose a smaller image.",
             category="request",
             retryable=False,
         )

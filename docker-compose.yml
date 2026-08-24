@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    environment:
+      STEELGUARD_MAX_UPLOAD_BYTES: "${STEELGUARD_MAX_UPLOAD_BYTES:-}"
     healthcheck:
       test:
         ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
@@ -30,5 +32,6 @@ services:
       STEELGUARD_API_BASE_URL: "${STEELGUARD_API_BASE_URL:-http://backend:8000}"
       STEELGUARD_API_CONNECT_TIMEOUT_SECONDS: "${STEELGUARD_API_CONNECT_TIMEOUT_SECONDS:-}"
       STEELGUARD_API_READ_TIMEOUT_SECONDS: "${STEELGUARD_API_READ_TIMEOUT_SECONDS:-}"
+      STEELGUARD_MAX_UPLOAD_BYTES: "${STEELGUARD_MAX_UPLOAD_BYTES:-}"
       STEELGUARD_MOCK_DELAY_SECONDS: "${STEELGUARD_MOCK_DELAY_SECONDS:-0.6}"
     restart: unless-stopped

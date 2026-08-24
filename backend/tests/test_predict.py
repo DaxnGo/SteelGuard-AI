@@ -94,3 +94,39 @@ def test_predict_with_corrupted_image_returns_422(client):
     body = response.json()
     assert body["success"] is False
     assert body["error"]["code"] == "INVALID_IMAGE"
+
+
+def test_predict_rejects_image_above_configured_upload_limit(
+    client,
+    monkeypatch,
+    valid_png_bytes,
+):
+    monkeypatch.setenv("STEELGUARD_MAX_UPLOAD_BYTES", str(len(valid_png_bytes) - 1))
+
+    response = client.post(
+        "/predict",
+        files={"file": ("sample.png", valid_png_bytes, "image/png")},
+    )
+
+    assert response.status_code == 413
+    body = response.json()
+    assert body["success"] is False
+    assert body["error"]["code"] == "FILE_TOO_LARGE"
+
+
+def test_predict_returns_safe_error_for_invalid_upload_limit(
+    client,
+    monkeypatch,
+    valid_png_bytes,
+):
+    monkeypatch.setenv("STEELGUARD_MAX_UPLOAD_BYTES", "invalid")
+
+    response = client.post(
+        "/predict",
+        files={"file": ("sample.png", valid_png_bytes, "image/png")},
+    )
+
+    assert response.status_code == 500
+    body = response.json()
+    assert body["success"] is False
+    assert body["error"]["code"] == "INTERNAL_ERROR"

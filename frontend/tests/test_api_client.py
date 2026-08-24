@@ -13,6 +13,7 @@ import requests
 from services.api_client import (
     API_BASE_URL_ENV,
     CONNECT_TIMEOUT_ENV,
+    MAX_UPLOAD_BYTES_ENV,
     PredictionServiceError,
     READ_TIMEOUT_ENV,
     SUPPORTED_CLASSES,
@@ -54,6 +55,7 @@ def real_api_environment() -> dict[str, str]:
         API_BASE_URL_ENV: "http://backend.test:8000",
         CONNECT_TIMEOUT_ENV: "1.25",
         READ_TIMEOUT_ENV: "8.5",
+        MAX_UPLOAD_BYTES_ENV: str(1024 * 1024),
     }
 
 
@@ -174,6 +176,7 @@ class APIClientConfigurationTests(unittest.TestCase):
         self.assertIsNone(config.api_base_url)
         self.assertIsNone(config.connect_timeout_seconds)
         self.assertIsNone(config.read_timeout_seconds)
+        self.assertIsNone(config.max_upload_bytes)
 
     def test_source_label_is_owned_by_client_configuration(self) -> None:
         with patch.dict(os.environ, {USE_MOCK_API_ENV: "true"}, clear=True):
@@ -207,6 +210,12 @@ class APIClientConfigurationTests(unittest.TestCase):
                 API_BASE_URL_ENV: "http://backend.test:8000",
                 CONNECT_TIMEOUT_ENV: "1",
             },
+            {
+                USE_MOCK_API_ENV: "false",
+                API_BASE_URL_ENV: "http://backend.test:8000",
+                CONNECT_TIMEOUT_ENV: "1",
+                READ_TIMEOUT_ENV: "8",
+            },
         )
 
         for environment in incomplete_configurations:
@@ -234,6 +243,15 @@ class APIClientConfigurationTests(unittest.TestCase):
             with self.subTest(value=value):
                 environment = real_api_environment()
                 environment[CONNECT_TIMEOUT_ENV] = value
+                with self.assertRaises(PredictionServiceError) as raised:
+                    load_api_client_config(environment)
+                self.assertEqual(raised.exception.category, "configuration")
+
+    def test_real_mode_rejects_invalid_upload_limits(self) -> None:
+        for value in ("0", "-1", "1.5", "invalid"):
+            with self.subTest(value=value):
+                environment = real_api_environment()
+                environment[MAX_UPLOAD_BYTES_ENV] = value
                 with self.assertRaises(PredictionServiceError) as raised:
                     load_api_client_config(environment)
                 self.assertEqual(raised.exception.category, "configuration")
@@ -289,6 +307,7 @@ class RealAPIAdapterTests(unittest.TestCase):
     def test_documented_http_errors_have_safe_messages(self) -> None:
         cases = {
             400: "could not process this image",
+            413: "larger than the service allows",
             415: "Unsupported image format",
             422: "could not validate this image",
             500: "internal error",
@@ -307,6 +326,18 @@ class RealAPIAdapterTests(unittest.TestCase):
                             predict_image(validated_test_image())
                 self.assertIn(message, str(raised.exception))
                 fake_response.json.assert_not_called()
+
+    def test_real_mode_rejects_oversized_image_before_post(self) -> None:
+        image = validated_test_image()
+        environment = real_api_environment()
+        environment[MAX_UPLOAD_BYTES_ENV] = str(len(image.data) - 1)
+
+        with patch.dict(os.environ, environment, clear=True):
+            with patch("services.api_client.requests.post") as post:
+                with self.assertRaisesRegex(PredictionServiceError, "upload limit"):
+                    predict_image(image)
+
+        post.assert_not_called()
 
     def test_malformed_json_is_not_presented_as_prediction(self) -> None:
         fake_response = Mock(status_code=200)

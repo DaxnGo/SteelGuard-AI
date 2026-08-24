@@ -70,9 +70,26 @@ Request rules:
    than one image.
 4. The backend validates the decoded content and must not trust only the
    filename extension or client-supplied media type.
-5. A maximum upload size is not defined by this contract yet. If introduced,
-   it must be agreed by both teams, documented here, applied consistently, and
-   use `413 Payload Too Large` when exceeded.
+5. FE and BE read the same `STEELGUARD_MAX_UPLOAD_BYTES` setting and reject a
+   larger image before analysis. The final numeric D-04 value remains TBD and
+   must be approved before target live-mode activation.
+
+Oversized-file response:
+
+```http
+HTTP/1.1 413 Payload Too Large
+Content-Type: application/json
+```
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "FILE_TOO_LARGE",
+    "message": "The uploaded image exceeds the configured size limit."
+  }
+}
+```
 
 Missing-file response:
 
@@ -462,6 +479,7 @@ The frontend must:
 
 - accept exactly one user-selected JPG, JPEG, or PNG image;
 - perform non-authoritative usability validation and preview with Pillow;
+- enforce the same configured maximum upload size as the backend;
 - submit the original image bytes once in the multipart `file` field;
 - call the exact `/predict` path through a centralized Requests/HTTPX client;
 - apply explicitly configured connection and response/read timeouts;

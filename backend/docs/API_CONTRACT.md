@@ -181,6 +181,7 @@ All error responses share a single consistent structure.
 | Code | HTTP Status | Meaning |
 |---|---|---|
 | `NO_FILE` | 400 | No file was included in the request |
+| `FILE_TOO_LARGE` | 413 | File exceeds the configured D-04 upload-size limit |
 | `UNSUPPORTED_FILE_TYPE` | 415 | File is not JPEG or PNG |
 | `INVALID_IMAGE` | 422 | File has an image extension/MIME type but cannot be processed as an image |
 | `INFERENCE_FAILED` | 500 | AI received the image but inference failed |

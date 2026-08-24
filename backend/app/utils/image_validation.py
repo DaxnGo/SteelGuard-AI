@@ -1,10 +1,12 @@
 from io import BytesIO
+import os
 
 from fastapi import UploadFile
 from PIL import Image, UnidentifiedImageError
 
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png"}
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png"}
+MAX_UPLOAD_BYTES_ENV = "STEELGUARD_MAX_UPLOAD_BYTES"
 
 
 class ImageValidationError(Exception):
@@ -12,6 +14,25 @@ class ImageValidationError(Exception):
         self.code = code
         self.message = message
         super().__init__(message)
+
+
+def load_max_upload_bytes() -> int | None:
+    """Return the shared D-04 byte limit when configured."""
+
+    raw_value = os.getenv(MAX_UPLOAD_BYTES_ENV)
+    if raw_value is None or not raw_value.strip():
+        return None
+    try:
+        value = int(raw_value)
+    except ValueError as exc:
+        raise ValueError(
+            f"{MAX_UPLOAD_BYTES_ENV} must be a positive whole number of bytes."
+        ) from exc
+    if value <= 0:
+        raise ValueError(
+            f"{MAX_UPLOAD_BYTES_ENV} must be a positive whole number of bytes."
+        )
+    return value
 
 
 def validate_image(file: UploadFile, content: bytes) -> None:

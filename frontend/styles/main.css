@@ -40,6 +40,7 @@ h3,
 h4 {
   color: var(--steelguard-primary);
   letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 
 h1 {
@@ -78,6 +79,7 @@ h1 {
   color: var(--steelguard-secondary);
   font-size: 0.76rem;
   line-height: 1;
+  overflow-wrap: anywhere;
 }
 
 .system-status strong {
@@ -114,6 +116,7 @@ h1 {
   margin: -0.15rem 0 0.9rem;
   color: var(--steelguard-secondary);
   font-size: 0.86rem;
+  overflow-wrap: anywhere;
 }
 
 .upload-guidance strong {
@@ -193,6 +196,16 @@ h1 {
   min-height: 2.9rem;
   border-radius: 0.55rem;
   font-weight: 700;
+  touch-action: manipulation;
+}
+
+[data-testid="stFileUploaderDropzone"] button {
+  min-height: 2.75rem;
+  touch-action: manipulation;
+}
+
+[data-testid="stFileUploaderDropzoneInstructions"] > div:last-child {
+  display: none;
 }
 
 .stButton > button[kind="primary"] {
@@ -214,6 +227,7 @@ h1 {
 [data-testid="stAlert"] {
   border: 1px solid var(--steelguard-border);
   border-radius: 0.65rem;
+  overflow-wrap: anywhere;
 }
 
 .result-divider {
@@ -359,6 +373,17 @@ h1 {
   font-size: 0.85rem;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .stApp *,
+  .stApp *::before,
+  .stApp *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @media (max-width: 48rem) {
   .block-container {
     padding: 2rem 1rem 3rem;
@@ -395,7 +420,7 @@ h1 {
     row-gap: 1rem;
   }
 
-  [data-testid="column"] {
+  [data-testid="stColumn"] {
     min-width: 100% !important;
     flex: 1 1 100% !important;
   }

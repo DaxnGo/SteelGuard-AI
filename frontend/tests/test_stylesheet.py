@@ -40,6 +40,23 @@ class StylesheetThemeTests(unittest.TestCase):
             )
             self.assertIn("light-dark(", declaration)
 
+    def test_keyboard_and_reduced_motion_rules_are_present(self) -> None:
+        css = STYLESHEET_PATH.read_text(encoding="utf-8")
+
+        self.assertIn(":focus-visible", css)
+        self.assertIn("outline: 3px solid", css)
+        self.assertIn("@media (prefers-reduced-motion: reduce)", css)
+        self.assertIn("stFileUploaderDropzoneInstructions", css)
+        self.assertNotIn("transition: all", css)
+
+    def test_narrow_layout_stacks_columns_without_horizontal_overflow(self) -> None:
+        css = STYLESHEET_PATH.read_text(encoding="utf-8")
+
+        self.assertIn("@media (max-width: 48rem)", css)
+        self.assertIn('[data-testid="stColumn"]', css)
+        self.assertIn("min-width: 100% !important", css)
+        self.assertIn("overflow-wrap: anywhere", css)
+
 
 if __name__ == "__main__":
     unittest.main()

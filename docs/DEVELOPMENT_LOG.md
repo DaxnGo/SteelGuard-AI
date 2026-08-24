@@ -186,3 +186,36 @@ inspection-event log and must never contain user images or predictions.
 - D-04 timeout values and D-05 Grad-CAM transport remain explicitly unresolved;
   the smoke check uses temporary local timeout values and accepts dummy
   `gradcam_image: null` only.
+
+## 2026-08-24 — Phase 2 live frontend hardening and demo rehearsal
+
+**Status:** Implemented; target activation awaits approved D-04 values
+
+### Changes
+
+- Added `STEELGUARD_MAX_UPLOAD_BYTES` as one shared FE/BE upload-size setting.
+- Added frontend early rejection and authoritative backend `413 FILE_TOO_LARGE`
+  handling without invoking prediction.
+- Upgraded the Phase 2 smoke check to exercise the complete Streamlit upload,
+  Analyze, result, and reset path against the real dummy FastAPI process.
+- Added live HTTP UI coverage for timeout, `400`, `413`, `415`, `422`, `500`,
+  `503`, malformed JSON, and contract-invalid JSON.
+- Improved error recovery guidance, heading hierarchy, decorative icon
+  semantics, focus styling, reduced-motion behavior, and narrow-layout rules.
+
+### Validation
+
+- Backend tests: 10 passed.
+- Frontend tests: 54 passed, including live HTTP fault injection.
+- Full Streamlit-to-dummy-FastAPI smoke test passed.
+- Browser rehearsal passed for successful inspection, backend outage recovery,
+  deliberate retry, and reset.
+- Browser layout checks found no horizontal overflow at `390 × 844` or
+  `1440 × 900`; result columns stack on the narrow viewport.
+- Docker Compose configuration renders successfully.
+
+### Pending decision
+
+- The repository deliberately does not choose the numeric upload limit or
+  connect/read timeouts. D-04 must be approved before live mode is enabled in
+  the target environment.

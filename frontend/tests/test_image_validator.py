@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 from io import BytesIO
+import os
 import unittest
+from unittest.mock import patch
 
 from PIL import Image
 
 from utils.image_validator import (
     ImageValidationError,
+    MAX_UPLOAD_BYTES_ENV,
+    UploadLimitConfigurationError,
+    load_max_upload_bytes,
     validate_image_bytes,
     validate_uploaded_image,
 )
@@ -74,6 +79,22 @@ class ImageValidatorTests(unittest.TestCase):
     def test_rejects_extension_and_content_mismatch(self) -> None:
         with self.assertRaisesRegex(ImageValidationError, "does not match"):
             validate_image_bytes("surface.jpg", make_image_bytes("PNG"))
+
+    def test_rejects_upload_above_configured_limit(self) -> None:
+        data = make_image_bytes("PNG")
+        with patch.dict(
+            os.environ,
+            {MAX_UPLOAD_BYTES_ENV: str(len(data) - 1)},
+            clear=True,
+        ):
+            with self.assertRaisesRegex(ImageValidationError, "upload limit"):
+                validate_uploaded_image(FakeUpload("surface.png", data))
+
+    def test_upload_limit_requires_positive_whole_bytes(self) -> None:
+        for value in ("0", "-1", "1.5", "invalid"):
+            with self.subTest(value=value):
+                with self.assertRaises(UploadLimitConfigurationError):
+                    load_max_upload_bytes({MAX_UPLOAD_BYTES_ENV: value})
 
 
 if __name__ == "__main__":

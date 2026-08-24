@@ -675,7 +675,7 @@ accepted, but end-to-end integration depends on all three boundaries.
 | 1. Frontend MVP | Complete | Frontend | Upload, preview, Analyze, loading/error/success, mock result, Grad-CAM placeholder, retry, reset | Full state flow passes against the approved fixture; no AI output is derived in the frontend |
 | 2. Backend API | Phase 1 complete | Backend | FastAPI request validation, prediction endpoint, dummy adapter, errors, container | API and negative-path tests conform to the Phase 1 contract |
 | 3. AI baseline and selection | Planned | AI | Reproducible dataset protocol, candidate comparison, selected artifact, Grad-CAM, adapter | D-01 through D-03 are resolved; artifact evidence and adapter tests are complete |
-| 4. Integration | Dummy path verified | Shared | Streamlit → FastAPI dummy path and two-service Compose | Real AI path and final timeout/Grad-CAM decisions remain before full MVP acceptance |
+| 4. Integration | Dummy UI path and recovery verified | Shared | Streamlit → FastAPI dummy path, live HTTP failure handling, and two-service Compose | Approved D-04 values, real AI path, and final Grad-CAM decision remain before full MVP acceptance |
 | 5. Demo hardening | Planned | Shared | Recovery behavior, operator guidance, reproducibility evidence, rehearsal | Clean-machine Docker rehearsal and Definition of Done review pass |
 
 > **Decision required D-07:** Assign people and target dates after team capacity

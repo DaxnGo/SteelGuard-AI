@@ -32,6 +32,10 @@ uvicorn app.main:app --app-dir backend --reload --port 8000
 The API is available at `http://localhost:8000` and Swagger UI at
 `http://localhost:8000/docs`.
 
+Set `STEELGUARD_MAX_UPLOAD_BYTES` to the approved positive D-04 byte limit in
+the target environment. When configured, `/predict` rejects larger uploads
+with `413 FILE_TOO_LARGE`. The final numeric limit remains a team decision.
+
 ## Endpoints
 
 ### `GET /health`
