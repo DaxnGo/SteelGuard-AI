@@ -184,7 +184,7 @@ All error responses share a single consistent structure.
 | `FILE_TOO_LARGE` | 413 | File exceeds the configured D-04 upload-size limit |
 | `UNSUPPORTED_FILE_TYPE` | 415 | File is not JPEG or PNG |
 | `INVALID_IMAGE` | 422 | File has an image extension/MIME type but cannot be processed as an image |
-| `INFERENCE_FAILED` | 500 | AI received the image but inference failed |
+| `INFERENCE_FAILED` | 503 | AI received the image but inference failed |
 | `MODEL_UNAVAILABLE` | 503 | Model is not loaded or unavailable |
 | `INTERNAL_ERROR` | 500 | Unexpected backend error |
 

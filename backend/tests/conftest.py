@@ -12,6 +12,11 @@ def client():
     return TestClient(app)
 
 
+@pytest.fixture
+def lenient_client():
+    return TestClient(app, raise_server_exceptions=False)
+
+
 def _make_image_bytes(fmt: str) -> bytes:
     buffer = BytesIO()
     image = Image.new("RGB", (32, 32), color=(120, 120, 120))
