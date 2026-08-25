@@ -1,0 +1,30 @@
+# NEU-DET dataset configuration for Ultralytics YOLO
+# Dataset: NEU Surface Defect Database (NEU-DET)
+# Source:  http://faculty.neu.edu.cn/songkechen/zh_CN/zdylm/263270/list/
+# Paper:   Song & Yan, "A noise robust method based on completed local binary
+#          patterns for hot-rolled steel strip surface defects", Applied Surface
+#          Science, 2013.
+# License: CC BY-NC-SA 4.0 (academic / non-commercial use)
+#
+# Images:  1800 total, 200×200 px, grayscale steel surface crops
+#          300 images per class (perfectly balanced)
+# Format:  Original annotations in Pascal VOC XML; converted to YOLO txt
+#          by train_eval_pipeline.py (Step 1).
+
+# ── Paths (relative to this YAML file) ──────────────────────────────────────
+# These are populated after running train_eval_pipeline.py --prepare
+path: ./datasets/NEU-DET          # dataset root
+train: images/train               # train images (relative to 'path')
+val:   images/val                 # val   images (relative to 'path')
+test:  images/test                # test  images (relative to 'path')
+
+# ── Classes ──────────────────────────────────────────────────────────────────
+names:
+  0: crazing
+  1: inclusion
+  2: patches
+  3: pitted_surface
+  4: rolled-in_scale
+  5: scratches
+
+nc: 6
