@@ -29,9 +29,8 @@ backend.
 
 - The Streamlit frontend completes the one-image workflow with explicit mock
   AI output.
-- The prediction client defaults to mock mode and includes a configuration-
-  gated Requests adapter that is verified against dummy and model-backed
-  `POST /predict` responses.
+- Docker Compose defaults to the live frontend-to-backend HTTP path; isolated
+  frontend development can still opt into the validated mock adapter.
 - Frontend components, Pillow validation, response validation, errors, retry,
   and reset are implemented and covered by automated tests.
 - The supplied provisional YOLO11n checkpoint is integrated behind
@@ -40,8 +39,8 @@ backend.
   with `python scripts/phase2_smoke_test.py`.
 - Live Grad-CAM generation is implemented using the recommended PNG data-URI
   transport; D-03 recommendation approval and final model evidence remain open.
-- Docker Compose now defines healthy backend and frontend services; live mode
-  requires explicit environment values while D-04 remains open.
+- Docker Compose defines healthy backend and frontend services with adopted
+  demo values of a 1 MiB upload limit and 2/30-second connect/read timeouts.
 
 ## Quick start
 
@@ -65,10 +64,9 @@ To run the dummy backend locally in a second terminal:
 uvicorn app.main:app --app-dir backend --reload --port 8000
 ```
 
-For a local FE-to-BE smoke test, set `STEELGUARD_USE_MOCK_API=false`,
-`STEELGUARD_API_BASE_URL=http://localhost:8000`, positive connection/read
-timeouts, and one positive `STEELGUARD_MAX_UPLOAD_BYTES` value before starting
-Streamlit. Smoke-test values are temporary and are not the final D-04 decision.
+For a local FE-to-BE run outside Docker, use `STEELGUARD_USE_MOCK_API=false`,
+`STEELGUARD_API_BASE_URL=http://localhost:8000`, connect/read timeouts of `2`
+and `30`, and `STEELGUARD_MAX_UPLOAD_BYTES=1048576` before starting Streamlit.
 
 To run the reproducible Phase 2 check, which starts a temporary dummy backend
 and completes the upload, Analyze, and result flow through the production
@@ -98,9 +96,9 @@ docker compose up --build
 ```
 
 The frontend is exposed at <http://localhost:8501> and the backend at
-<http://localhost:8000>. Compose keeps the frontend in mock mode by default;
-set the live API variables in `.env` to exercise the backend through the
-container network. Backend dummy/model selection is configured separately.
+<http://localhost:8000>. Compose uses the live frontend-to-backend path by
+default while keeping the backend AI adapter in safe dummy mode. Backend
+dummy/model selection is configured separately.
 
 ## Repository layout
 

@@ -1,6 +1,6 @@
 # SteelGuard AI Frontend API Integration Readiness
 
-> **Default mode:** Mock API
+> **Compose default mode:** Live frontend to dummy backend
 > **Live-path status:** Dummy and provisional model-backed FastAPI flows verified
 > **Frontend boundary:** `frontend/services/api_client.py`
 
@@ -11,9 +11,9 @@ Phase 2 now has a reproducible cross-service check:
 ```
 
 The check starts a temporary FastAPI dummy backend and sends one validated image
-through the real frontend Requests client. It uses temporary `2` second connect
-and `10` second read values for the smoke test only; final D-04 timeout values
-remain a team decision.
+through the real frontend Requests client. The adopted demo settings are a `2`
+second connection timeout, `30` second read timeout, and `1 MiB` shared FE/BE
+upload limit. Deployments can override all three settings.
 
 ## Stable frontend interface
 
@@ -44,7 +44,7 @@ multipart requests, or catch Requests exceptions.
 
 | Environment variable | Mock mode | Real mode | Purpose |
 | --- | --- | --- | --- |
-| `STEELGUARD_USE_MOCK_API` | Optional; defaults to `true` | Required as `false` | Select exactly one prediction source |
+| `STEELGUARD_USE_MOCK_API` | Required as `true` | Compose defaults to `false` | Select exactly one prediction source |
 | `STEELGUARD_API_BASE_URL` | Ignored | Required | Credential-free HTTP(S) backend base URL; `/predict` is appended by the client |
 | `STEELGUARD_API_CONNECT_TIMEOUT_SECONDS` | Ignored | Required | Explicit positive Requests connection timeout |
 | `STEELGUARD_API_READ_TIMEOUT_SECONDS` | Ignored | Required | Explicit positive Requests response/read timeout |
@@ -52,16 +52,16 @@ multipart requests, or catch Requests exceptions.
 | `STEELGUARD_MOCK_RESPONSE_PATH` | Optional | Ignored | Override the canonical mock fixture path for development |
 | `STEELGUARD_MOCK_DELAY_SECONDS` | Optional; defaults to `0.6` | Ignored | Keep the local loading state visible; clamped from `0` to `3` seconds |
 
-The exact real connection/read timeout values remain **TBD** under project
-decision D-04. Real mode deliberately refuses to start without both values;
-the frontend does not invent deployment defaults.
+Compose adopts `2` seconds for connection, `30` seconds for response/read, and
+`1048576` bytes for upload as the local demo D-04 values. Real mode still
+refuses to start if explicitly configured with missing or invalid values.
 
 Do not place tokens, credentials, passwords, or other secrets in the base URL.
 The current API contract does not require a frontend secret.
 
 ## Current mock behavior
 
-With `STEELGUARD_USE_MOCK_API=true` or with the variable unset:
+With `STEELGUARD_USE_MOCK_API=true`:
 
 1. `predict_image()` accepts one previously validated image.
 2. The service loads `mock/prediction_response.json` or the optional configured
@@ -87,8 +87,9 @@ With real mode deliberately enabled, the service:
 The dummy backend and provisional model adapter have both been exercised through
 real `GET /health` and `POST /predict` requests. The model path has also passed
 the complete Streamlit upload, Analyze, result, Grad-CAM, and reset workflow in
-Docker Compose. Final acceptance still requires approved D-03 through D-06
-deployment values and model evidence.
+Docker Compose. The frontend accepts Grad-CAM as a PNG data URI, which is the
+adopted transport for the local MVP. Final model acceptance still requires the
+AI evidence and quality-owner recommendation mapping.
 
 ## Prepared error mapping
 
@@ -118,14 +119,14 @@ offer image replacement instead of retrying unchanged input.
 When the real AI service and deployment settings become available:
 
 - [x] Confirm the Phase 1 dummy `POST /predict` against `docs/API_CONTRACT.md`.
-- [ ] Confirm the final Grad-CAM transport representation.
+- [x] Adopt a PNG data URI as the frontend Grad-CAM transport for the local MVP.
 - [x] Return and render a non-empty PNG data URI in provisional model mode;
       retain `null` only for the dummy stage.
-- [ ] Resolve D-04 and record approved upload-size and timeout values.
-- [ ] Verify the backend accepts exactly one multipart field named `file`.
-- [ ] Set `STEELGUARD_USE_MOCK_API=false` in the target environment.
-- [ ] Set `STEELGUARD_API_BASE_URL` without `/predict` and without credentials.
-- [ ] Set both confirmed timeout variables.
+- [x] Record demo D-04 values: 1 MiB upload, 2-second connect, 30-second read.
+- [x] Verify the backend accepts exactly one multipart field named `file`.
+- [x] Set `STEELGUARD_USE_MOCK_API=false` in the Compose target.
+- [x] Set `STEELGUARD_API_BASE_URL` without `/predict` and without credentials.
+- [x] Set both adopted timeout variables.
 - [x] Add the backend service and health dependency to Docker Compose.
 - [x] Run API-client tests against mocked transport.
 - [x] Run contract tests against the FastAPI test application.

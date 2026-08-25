@@ -45,6 +45,8 @@ class StylesheetThemeTests(unittest.TestCase):
 
         self.assertIn(":focus-visible", css)
         self.assertIn("outline: 3px solid", css)
+        self.assertIn(".skip-link", css)
+        self.assertIn("#steel-surface-inspection:focus-visible", css)
         self.assertIn("@media (prefers-reduced-motion: reduce)", css)
         self.assertIn("stFileUploaderDropzoneInstructions", css)
         self.assertNotIn("transition: all", css)

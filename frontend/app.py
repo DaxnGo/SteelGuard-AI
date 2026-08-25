@@ -75,6 +75,11 @@ def render_header() -> None:
 
     source_label = get_prediction_source_label()
     st.markdown(
+        '<a class="skip-link" href="#steel-surface-inspection">'
+        "Skip to inspection</a>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
         '<p class="brand-kicker">INDUSTRIAL VISION INSPECTION</p>',
         unsafe_allow_html=True,
     )

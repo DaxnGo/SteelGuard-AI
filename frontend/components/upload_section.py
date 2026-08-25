@@ -34,7 +34,8 @@ def render_upload_section(widget_key: str, *, disabled: bool = False) -> Any | N
     )
 
     st.markdown(
-        '<h2 class="section-eyebrow inspection-heading">'
+        '<h2 id="steel-surface-inspection" tabindex="-1" '
+        'class="section-eyebrow inspection-heading">'
         "STEEL SURFACE INSPECTION</h2>",
         unsafe_allow_html=True,
     )

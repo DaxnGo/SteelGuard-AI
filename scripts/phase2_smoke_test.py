@@ -84,9 +84,9 @@ def main() -> None:
         environment = {
             "STEELGUARD_USE_MOCK_API": "false",
             "STEELGUARD_API_BASE_URL": base_url,
-            # Temporary smoke-test values; final D-04 values remain a team decision.
+            # Adopted local demo values; deployments can override them.
             "STEELGUARD_API_CONNECT_TIMEOUT_SECONDS": "2",
-            "STEELGUARD_API_READ_TIMEOUT_SECONDS": "10",
+            "STEELGUARD_API_READ_TIMEOUT_SECONDS": "30",
             "STEELGUARD_MAX_UPLOAD_BYTES": str(1024 * 1024),
         }
         with patch.dict(os.environ, environment, clear=False):

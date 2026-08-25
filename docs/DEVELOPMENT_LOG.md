@@ -275,3 +275,38 @@ inspection-event log and must never contain user images or predictions.
   D-04 production decisions.
 - PNG data URI is implemented as the repository-recommended D-05 option, but
   formal D-05 and D-06 target/deployment sign-off remains required.
+## 2026-08-25 — Frontend final MVP QA
+
+**Status:** Frontend-to-dummy-backend demo path verified
+
+### Changes
+
+- Activated the Docker Compose frontend-to-backend HTTP path by default while
+  retaining the backend's explicit safe dummy/model switch.
+- Adopted one shared 1 MiB FE/BE upload limit and 2/30-second connect/read demo
+  timeouts, all still overridable through environment variables.
+- Added a keyboard-visible skip link to the inspection form and retained native
+  Streamlit controls, visible focus styles, reduced-motion handling, and mobile
+  column stacking.
+- Added a deployment-config regression check so Compose and `.env.example`
+  cannot silently drift apart.
+
+### Validation
+
+- Frontend suite: 57 passed.
+- Backend contract suite: 33 passed with one dependency deprecation warning.
+- Streamlit-to-dummy-FastAPI Phase 2 smoke test passed.
+- `docker compose config --quiet` passed.
+- Browser rehearsal passed at 1280 x 800 and 375 x 812 with no horizontal
+  overflow. The accessible structure exposes the skip link, labeled upload,
+  native buttons, status messages, and ordered headings.
+- A live service outage preserved the selected image, displayed operator next
+  steps plus `Try Again`/replacement actions, and recovered successfully after
+  the backend restarted.
+
+### Scope boundary
+
+- No dashboard, authentication, history, database, batch input, or other
+  competition-out-of-scope feature was added.
+- Final model-mode rehearsal and Proof of Work recording remain separate AI
+  integration tasks after the competition-period checkpoint is available.
