@@ -71,6 +71,21 @@ python -m pytest ai/tests -q
 `test_model_smoke.py` automatically exercises the bundled model and Grad-CAM
 when Ultralytics is installed, including inside the backend Docker image.
 
+## Technical benchmark
+
+The benchmark uses the existing model runtime to record checkpoint metadata,
+CPU/model startup, full class-plus-Grad-CAM latency, and process peak RSS without
+requiring the training dataset:
+
+```powershell
+docker compose build backend
+docker compose run --rm --no-deps backend python -m ai.benchmark --warmup 2 --runs 10
+```
+
+See [`TECHNICAL_EVIDENCE.md`](TECHNICAL_EVIDENCE.md) for the recorded demo-host
+result, Grad-CAM target-layer validation, scope, and remaining evidence. The
+synthetic benchmark is not a model-quality or accuracy test.
+
 ## Remaining AI evidence
 
 - Resolve dataset provenance, split, preprocessing, and augmentation under D-01.

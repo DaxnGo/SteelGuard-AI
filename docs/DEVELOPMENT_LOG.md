@@ -275,3 +275,32 @@ inspection-event log and must never contain user images or predictions.
   D-04 production decisions.
 - PNG data URI is implemented as the repository-recommended D-05 option, but
   formal D-05 and D-06 target/deployment sign-off remains required.
+
+## 2026-08-25 — Reproducible AI technical evidence
+
+**Status:** Technical evidence recorded; dataset/model-quality evidence pending
+
+### Changes
+
+- Added a no-new-dependency benchmark entry point for the complete CPU adapter
+  path, including model/checksum startup, classification, and same-pass Grad-CAM.
+- Added deterministic synthetic input, JSON metadata output, latency statistics,
+  hardware/runtime details, peak process RSS, and focused unit tests.
+- Recorded the verified checkpoint labels, public API labels, checksum, runtime,
+  Grad-CAM target layer, measured demo-host performance, and explicit evidence
+  boundaries in `ai/TECHNICAL_EVIDENCE.md`.
+
+### Validation
+
+- The backend image rebuilt successfully with the benchmark entry point.
+- Ten measured runs after two warmups completed on an Intel Core i3-7020U CPU.
+- Median full-adapter latency was 571.66 ms, P95 was 764.44 ms, model/checksum
+  startup was 3,524.11 ms, and process peak RSS was 575.59 MiB.
+
+### Pending evidence
+
+- The benchmark uses deterministic synthetic input and confidence threshold
+  `0.0`; it is not evidence of model accuracy, calibration, dataset quality, or
+  the production threshold.
+- Dataset provenance/splits, held-out metrics, candidate comparison, and the
+  quality-owner recommendation mapping remain assigned to the AI/domain owners.
