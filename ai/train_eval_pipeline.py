@@ -1,62 +1,37 @@
 #!/usr/bin/env python3
-"""
-NEU-DET Training & Evaluation Pipeline
-=======================================
-End-to-end pipeline that:
-  1. Converts Pascal VOC XML annotations → YOLO txt format
-  2. Splits the dataset into train / val / test (70/20/10, stratified, seeded)
-  3. Checks for image-hash duplicates and cross-split leakage
-  4. Trains YOLO11n (ultralytics) on the train split
-  5. Evaluates best.pt on the held-out test split and exports metrics
+"""Reproducible NEU-DET preparation, YOLO11n training, and evaluation.
 
-Usage
------
-    # Step 1 – Prepare dataset (convert + split + integrity checks)
-    python train_eval_pipeline.py --prepare \
-        --raw-images  ./archive_extracted/NEU-DET/IMAGES \
-        --raw-annots  ./archive_extracted/NEU-DET/ANNOTATIONS \
-        --output-dir  ./datasets/NEU-DET
+Run from the repository root:
 
-    # Step 2 – Train
-    python train_eval_pipeline.py --train \
-        --data ./dataset_neu.yaml \
-        --epochs 100 --batch 16 --imgsz 640
+    python -m ai.train_eval_pipeline prepare --raw-images PATH --raw-annots PATH
+    python -m ai.train_eval_pipeline train
+    python -m ai.train_eval_pipeline evaluate --weights PATH
 
-    # Step 3 – Evaluate a checkpoint on the test set
-    python train_eval_pipeline.py --evaluate \
-        --weights ./runs/detect/train/weights/best.pt \
-        --data ./dataset_neu.yaml
-
-Requirements
-------------
-    pip install ultralytics>=8.4 scikit-learn Pillow
-
-Reproducibility
----------------
-    Random seed : 42  (used for dataset splitting)
-    Library     : ultralytics 8.4.x, Python 3.11, PyTorch 2.x
-    Hardware    : NVIDIA GPU recommended; CPU fallback supported
+The dataset and generated ``runs`` directory stay outside Git. Safe audit and
+evaluation summaries can be written to ``ai/evaluation`` for review.
 """
 
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import hashlib
-import os
-import shutil
-import sys
-import xml.etree.ElementTree as ET
-from collections import Counter, defaultdict
+import json
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+import platform
+import random
+import shutil
+import xml.etree.ElementTree as ET
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
+
 SEED = 42
-SPLIT_RATIOS = (0.70, 0.20, 0.10)  # train / val / test
+SPLIT_RATIOS = (0.70, 0.20, 0.10)
+EXPECTED_IMAGES_PER_CLASS = 300
+OFFICIAL_DATASET_URL = (
+    "https://faculty.neu.edu.cn/songkc/en/zdylm/263270/list/index.htm"
+)
 
-CLASS_MAP: Dict[str, int] = {
+CLASS_MAP: dict[str, int] = {
     "crazing": 0,
     "inclusion": 1,
     "patches": 2,
@@ -64,245 +39,322 @@ CLASS_MAP: Dict[str, int] = {
     "rolled-in_scale": 4,
     "scratches": 5,
 }
-
 IMG_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff"}
 
 
-# ---------------------------------------------------------------------------
-# 1. VOC XML → YOLO TXT conversion
-# ---------------------------------------------------------------------------
-def voc_xml_to_yolo(xml_path: Path, img_w: int = 200, img_h: int = 200) -> List[str]:
-    """Parse a Pascal VOC XML and return YOLO-format label lines."""
-    tree = ET.parse(xml_path)
-    root = tree.getroot()
-
-    size_el = root.find("size")
-    if size_el is not None:
-        img_w = int(size_el.findtext("width", str(img_w)))
-        img_h = int(size_el.findtext("height", str(img_h)))
-
-    lines: List[str] = []
-    for obj in root.iter("object"):
-        name = obj.findtext("name", "").strip()
-        if name not in CLASS_MAP:
-            print(f"  [WARN] Unknown class '{name}' in {xml_path.name}, skipping.")
-            continue
-        cls_id = CLASS_MAP[name]
-
-        bndbox = obj.find("bndbox")
-        xmin = float(bndbox.findtext("xmin"))  # type: ignore[union-attr]
-        ymin = float(bndbox.findtext("ymin"))  # type: ignore[union-attr]
-        xmax = float(bndbox.findtext("xmax"))  # type: ignore[union-attr]
-        ymax = float(bndbox.findtext("ymax"))  # type: ignore[union-attr]
-
-        # Convert to YOLO (cx, cy, w, h) normalised
-        cx = ((xmin + xmax) / 2.0) / img_w
-        cy = ((ymin + ymax) / 2.0) / img_h
-        bw = (xmax - xmin) / img_w
-        bh = (ymax - ymin) / img_h
-
-        lines.append(f"{cls_id} {cx:.6f} {cy:.6f} {bw:.6f} {bh:.6f}")
-    return lines
-
-
-# ---------------------------------------------------------------------------
-# 2. Dataset splitting (stratified by class prefix)
-# ---------------------------------------------------------------------------
-def split_dataset(
-    images: List[Path],
-    ratios: Tuple[float, float, float] = SPLIT_RATIOS,
-    seed: int = SEED,
-) -> Dict[str, List[Path]]:
-    """Stratified split by the class prefix of the filename (e.g. 'crazing_1')."""
-    from sklearn.model_selection import train_test_split
-
-    # Extract class label from filename: "crazing_123.jpg" -> "crazing"
-    labels = []
-    for p in images:
-        stem = p.stem  # e.g. "crazing_123"
-        # Handle "rolled-in_scale_1" (hyphenated class name)
-        for cls_name in sorted(CLASS_MAP.keys(), key=len, reverse=True):
-            if stem.startswith(cls_name):
-                labels.append(cls_name)
-                break
-        else:
-            labels.append("unknown")
-
-    train_ratio, val_ratio, test_ratio = ratios
-    assert abs(train_ratio + val_ratio + test_ratio - 1.0) < 1e-9
-
-    # First split: train vs (val+test)
-    train_imgs, valtest_imgs, train_labels, valtest_labels = train_test_split(
-        images, labels, test_size=(val_ratio + test_ratio),
-        random_state=seed, stratify=labels,
-    )
-
-    # Second split: val vs test
-    relative_test = test_ratio / (val_ratio + test_ratio)
-    val_imgs, test_imgs = train_test_split(
-        valtest_imgs, test_size=relative_test,
-        random_state=seed, stratify=valtest_labels,
-    )
-
-    return {"train": train_imgs, "val": val_imgs, "test": test_imgs}
-
-
-# ---------------------------------------------------------------------------
-# 3. Duplicate / leakage checks
-# ---------------------------------------------------------------------------
 def file_hash(path: Path, algo: str = "sha256") -> str:
-    h = hashlib.new(algo)
-    h.update(path.read_bytes())
-    return h.hexdigest()
+    digest = hashlib.new(algo)
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def class_name_for_image(path: Path) -> str:
+    """Return the exact NEU-DET class encoded in an image filename."""
+
+    for class_name in sorted(CLASS_MAP, key=len, reverse=True):
+        if path.stem.startswith(f"{class_name}_"):
+            return class_name
+    raise ValueError(f"Image has no supported NEU-DET class prefix: {path.name}")
+
+
+def voc_xml_to_yolo(xml_path: Path) -> list[str]:
+    """Convert one validated Pascal VOC annotation to YOLO label rows."""
+
+    root = ET.parse(xml_path).getroot()
+    size = root.find("size")
+    if size is None:
+        raise ValueError(f"Annotation has no image size: {xml_path.name}")
+    try:
+        image_width = int(size.findtext("width", ""))
+        image_height = int(size.findtext("height", ""))
+    except ValueError as exc:
+        raise ValueError(f"Annotation has an invalid image size: {xml_path.name}") from exc
+    if image_width <= 0 or image_height <= 0:
+        raise ValueError(f"Annotation has an invalid image size: {xml_path.name}")
+
+    rows: list[str] = []
+    for obj in root.iter("object"):
+        class_name = obj.findtext("name", "").strip()
+        if class_name not in CLASS_MAP:
+            raise ValueError(
+                f"Unsupported annotation class {class_name!r}: {xml_path.name}"
+            )
+        box = obj.find("bndbox")
+        if box is None:
+            raise ValueError(f"Annotation object has no box: {xml_path.name}")
+        try:
+            xmin = float(box.findtext("xmin", ""))
+            ymin = float(box.findtext("ymin", ""))
+            xmax = float(box.findtext("xmax", ""))
+            ymax = float(box.findtext("ymax", ""))
+        except ValueError as exc:
+            raise ValueError(f"Annotation has an invalid box: {xml_path.name}") from exc
+        if not (
+            0 <= xmin < xmax <= image_width
+            and 0 <= ymin < ymax <= image_height
+        ):
+            raise ValueError(f"Annotation box is outside the image: {xml_path.name}")
+
+        center_x = ((xmin + xmax) / 2.0) / image_width
+        center_y = ((ymin + ymax) / 2.0) / image_height
+        box_width = (xmax - xmin) / image_width
+        box_height = (ymax - ymin) / image_height
+        row = (
+            f"{CLASS_MAP[class_name]} {center_x:.6f} {center_y:.6f} "
+            f"{box_width:.6f} {box_height:.6f}"
+        )
+        if row not in rows:
+            rows.append(row)
+
+    if not rows:
+        raise ValueError(f"Annotation has no defect objects: {xml_path.name}")
+    return rows
+
+
+def split_dataset(
+    images: list[Path],
+    ratios: tuple[float, float, float] = SPLIT_RATIOS,
+    seed: int = SEED,
+) -> dict[str, list[Path]]:
+    """Create an input-order-independent stratified train/val/test split."""
+
+    if len(ratios) != 3 or any(ratio <= 0 for ratio in ratios):
+        raise ValueError("Split ratios must contain three positive values.")
+    if abs(sum(ratios) - 1.0) > 1e-9:
+        raise ValueError("Split ratios must sum to 1.0.")
+
+    grouped: dict[str, list[Path]] = {name: [] for name in CLASS_MAP}
+    for image in sorted(images):
+        grouped[class_name_for_image(image)].append(image)
+
+    train_ratio, val_ratio, _test_ratio = ratios
+    result = {"train": [], "val": [], "test": []}
+    rng = random.Random(seed)
+    for class_name in CLASS_MAP:
+        class_images = grouped[class_name]
+        rng.shuffle(class_images)
+        train_end = round(len(class_images) * train_ratio)
+        val_end = round(len(class_images) * (train_ratio + val_ratio))
+        result["train"].extend(class_images[:train_end])
+        result["val"].extend(class_images[train_end:val_end])
+        result["test"].extend(class_images[val_end:])
+
+    return {name: sorted(paths) for name, paths in result.items()}
+
+
+def deduplicate_images(
+    images: list[Path],
+) -> tuple[list[Path], list[dict[str, str]]]:
+    """Keep the first filename for each exact image hash and audit exclusions."""
+
+    retained: list[Path] = []
+    excluded: list[dict[str, str]] = []
+    seen: dict[str, Path] = {}
+    for image in sorted(images):
+        digest = file_hash(image)
+        previous = seen.get(digest)
+        if previous is None:
+            seen[digest] = image
+            retained.append(image)
+            continue
+        if class_name_for_image(previous) != class_name_for_image(image):
+            raise ValueError(
+                f"Identical images have conflicting classes: {previous.name}, {image.name}"
+            )
+        excluded.append(
+            {"excluded": image.name, "kept": previous.name, "sha256": digest}
+        )
+    return retained, excluded
 
 
 def check_duplicates_and_leakage(
-    splits: Dict[str, List[Path]],
-) -> Tuple[List[str], bool]:
-    """Return list of warning messages. If leakage found, second element is True."""
-    messages: List[str] = []
-    leakage_found = False
+    splits: dict[str, list[Path]],
+) -> tuple[list[str], bool]:
+    """Report exact duplicates; cross-split duplicates are labelled leakage."""
 
-    # Compute hashes per split
-    split_hashes: Dict[str, Dict[str, Path]] = {}
-    for split_name, paths in splits.items():
-        hashes: Dict[str, Path] = {}
-        for p in paths:
-            h = file_hash(p)
-            if h in hashes:
-                messages.append(
-                    f"  [DUP] {split_name}: {p.name} == {hashes[h].name}"
-                )
-            hashes[h] = p
-        split_hashes[split_name] = hashes
-
-    # Cross-split leakage
-    split_names = list(split_hashes.keys())
-    for i, s1 in enumerate(split_names):
-        for s2 in split_names[i + 1 :]:
-            overlap = set(split_hashes[s1].keys()) & set(split_hashes[s2].keys())
-            if overlap:
-                leakage_found = True
-                for h in overlap:
-                    messages.append(
-                        f"  [LEAK] {s1}/{split_hashes[s1][h].name} "
-                        f"== {s2}/{split_hashes[s2][h].name}"
-                    )
-
-    return messages, leakage_found
+    messages: list[str] = []
+    seen: dict[str, tuple[str, Path]] = {}
+    for split_name in ("train", "val", "test"):
+        for path in splits.get(split_name, []):
+            digest = file_hash(path)
+            previous = seen.get(digest)
+            if previous is None:
+                seen[digest] = (split_name, path)
+                continue
+            previous_split, previous_path = previous
+            label = "LEAK" if previous_split != split_name else "DUP"
+            messages.append(
+                f"[{label}] {previous_split}/{previous_path.name} == "
+                f"{split_name}/{path.name}"
+            )
+    return messages, bool(messages)
 
 
-# ---------------------------------------------------------------------------
-# Prepare command
-# ---------------------------------------------------------------------------
+def ensure_empty_output_dir(output_dir: Path) -> None:
+    """Refuse stale output instead of silently mixing incompatible splits."""
+
+    if output_dir.exists() and not output_dir.is_dir():
+        raise ValueError(f"Output path is not a directory: {output_dir}")
+    if output_dir.exists() and next(output_dir.iterdir(), None) is not None:
+        raise ValueError(
+            f"Output directory must be empty to prevent stale split files: {output_dir}"
+        )
+
+
+def macro_f1(precision: list[float], recall: list[float]) -> float:
+    """Return the arithmetic mean of per-class F1 scores."""
+
+    if len(precision) != len(recall):
+        raise ValueError("Precision and recall must have the same length.")
+    if not precision:
+        return 0.0
+    per_class = [
+        2 * p_value * r_value / (p_value + r_value)
+        if p_value + r_value > 0
+        else 0.0
+        for p_value, r_value in zip(precision, recall)
+    ]
+    return sum(per_class) / len(per_class)
+
+
+def _write_json(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def cmd_prepare(args: argparse.Namespace) -> None:
-    raw_images = Path(args.raw_images)
-    raw_annots = Path(args.raw_annots)
-    output_dir = Path(args.output_dir)
+    raw_images = Path(args.raw_images).resolve()
+    raw_annots = Path(args.raw_annots).resolve()
+    output_dir = Path(args.output_dir).resolve()
+    ensure_empty_output_dir(output_dir)
+    if not raw_images.is_dir() or not raw_annots.is_dir():
+        raise ValueError("Raw image and annotation directories must both exist.")
 
-    print(f"[1/5] Scanning images in {raw_images} ...")
-    all_images = sorted(
-        p for p in raw_images.iterdir()
-        if p.suffix.lower() in IMG_EXTENSIONS
+    images = sorted(
+        path
+        for path in raw_images.iterdir()
+        if path.is_file() and path.suffix.lower() in IMG_EXTENSIONS
     )
-    print(f"       Found {len(all_images)} images.")
+    class_counts = Counter(class_name_for_image(path) for path in images)
+    expected_counts = Counter(
+        {name: EXPECTED_IMAGES_PER_CLASS for name in CLASS_MAP}
+    )
+    if class_counts != expected_counts:
+        raise ValueError(
+            f"Expected 300 images for each NEU-DET class, found {dict(class_counts)}."
+        )
 
-    # --- Convert annotations ---
-    print("[2/5] Converting VOC XML → YOLO TXT ...")
-    annot_map: Dict[str, List[str]] = {}
-    missing_annots: List[str] = []
-    for img_path in all_images:
-        xml_path = raw_annots / (img_path.stem + ".xml")
-        if not xml_path.exists():
-            missing_annots.append(img_path.name)
-            annot_map[img_path.stem] = []
-            continue
-        annot_map[img_path.stem] = voc_xml_to_yolo(xml_path)
+    archive_sha256 = None
+    if args.source_archive:
+        source_archive = Path(args.source_archive).resolve()
+        if not source_archive.is_file():
+            raise ValueError(f"Source archive not found: {source_archive}")
+        archive_sha256 = file_hash(source_archive)
 
-    if missing_annots:
-        print(f"  [WARN] {len(missing_annots)} images have no annotation XML.")
+    annotations: dict[str, list[str]] = {}
+    duplicate_annotation_boxes_removed = 0
+    duplicate_annotation_boxes: list[dict[str, int | str]] = []
+    for image in images:
+        xml_path = raw_annots / f"{image.stem}.xml"
+        if not xml_path.is_file():
+            raise ValueError(f"Missing annotation: {xml_path.name}")
+        label_rows = voc_xml_to_yolo(xml_path)
+        source_box_count = sum(
+            1 for _object in ET.parse(xml_path).getroot().iter("object")
+        )
+        removed_boxes = source_box_count - len(label_rows)
+        duplicate_annotation_boxes_removed += removed_boxes
+        if removed_boxes:
+            duplicate_annotation_boxes.append(
+                {"annotation": xml_path.name, "removed": removed_boxes}
+            )
+        annotations[image.stem] = label_rows
 
-    total_boxes = sum(len(v) for v in annot_map.values())
-    print(f"       Converted {total_boxes} bounding boxes across {len(annot_map)} images.")
+    usable_images, excluded_duplicates = deduplicate_images(images)
+    usable_class_counts = Counter(
+        class_name_for_image(path) for path in usable_images
+    )
+    splits = split_dataset(usable_images)
+    integrity_messages, integrity_failed = check_duplicates_and_leakage(splits)
+    if integrity_failed:
+        raise ValueError("Dataset integrity check failed:\n" + "\n".join(integrity_messages))
 
-    # --- Split ---
-    print(f"[3/5] Splitting dataset (ratios={SPLIT_RATIOS}, seed={SEED}) ...")
-    splits = split_dataset(all_images)
-    for name, paths in splits.items():
-        cls_counts = Counter()
-        for p in paths:
-            for cls_name in sorted(CLASS_MAP.keys(), key=len, reverse=True):
-                if p.stem.startswith(cls_name):
-                    cls_counts[cls_name] += 1
-                    break
-        print(f"  {name:5s}: {len(paths):4d} images  {dict(cls_counts)}")
+    manifest_rows: list[str] = []
+    split_counts: dict[str, dict[str, int]] = {}
+    for split_name, split_images in splits.items():
+        image_dir = output_dir / "images" / split_name
+        label_dir = output_dir / "labels" / split_name
+        image_dir.mkdir(parents=True, exist_ok=True)
+        label_dir.mkdir(parents=True, exist_ok=True)
+        split_counts[split_name] = dict(
+            Counter(class_name_for_image(path) for path in split_images)
+        )
+        for source_image in split_images:
+            shutil.copy2(source_image, image_dir / source_image.name)
+            (label_dir / f"{source_image.stem}.txt").write_text(
+                "\n".join(annotations[source_image.stem]) + "\n",
+                encoding="ascii",
+            )
+            manifest_rows.append(
+                f"{split_name}\t{source_image.name}\t{file_hash(source_image)}"
+            )
 
-    # --- Duplicate / leakage check ---
-    print("[4/5] Checking for duplicates and cross-split leakage ...")
-    warnings, has_leakage = check_duplicates_and_leakage(splits)
-    if warnings:
-        for w in warnings:
-            print(w)
-    if has_leakage:
-        print("  *** LEAKAGE DETECTED — aborting. Fix duplicates first. ***")
-        sys.exit(1)
-    else:
-        print("  ✓ No duplicates or leakage found.")
-
-    # --- Write to disk ---
-    print(f"[5/5] Writing YOLO dataset tree to {output_dir} ...")
-    manifest_lines: List[str] = []
-
-    for split_name, paths in splits.items():
-        img_dir = output_dir / "images" / split_name
-        lbl_dir = output_dir / "labels" / split_name
-        img_dir.mkdir(parents=True, exist_ok=True)
-        lbl_dir.mkdir(parents=True, exist_ok=True)
-
-        for src_img in paths:
-            dst_img = img_dir / src_img.name
-            shutil.copy2(src_img, dst_img)
-
-            label_lines = annot_map.get(src_img.stem, [])
-            dst_lbl = lbl_dir / (src_img.stem + ".txt")
-            dst_lbl.write_text("\n".join(label_lines) + ("\n" if label_lines else ""))
-
-            manifest_lines.append(f"{split_name}\t{src_img.name}\t{file_hash(src_img)}")
-
-    # Write manifest
     manifest_path = output_dir / "split_manifest.tsv"
     manifest_path.write_text(
-        "split\tfilename\tsha256\n" + "\n".join(sorted(manifest_lines)) + "\n"
+        "split\tfilename\tsha256\n" + "\n".join(sorted(manifest_rows)) + "\n",
+        encoding="ascii",
     )
-    print(f"  Manifest written to {manifest_path}")
-    print("  Done ✓")
+
+    audit = {
+        "dataset": "NEU-DET",
+        "official_source": OFFICIAL_DATASET_URL,
+        "license_status": "Not specified by the official source; permission required for production use.",
+        "source_archive_sha256": archive_sha256,
+        "images_total_source": len(images),
+        "images_total_used": len(usable_images),
+        "source_images_per_class": dict(class_counts),
+        "used_images_per_class": dict(usable_class_counts),
+        "split_ratios": {"train": 0.70, "val": 0.20, "test": 0.10},
+        "split_seed": SEED,
+        "split_counts": split_counts,
+        "excluded_exact_duplicates": excluded_duplicates,
+        "duplicate_check": (
+            "Passed after deterministic exact-duplicate exclusion; "
+            "no SHA-256 duplicates remain within or across splits."
+        ),
+        "duplicate_annotation_boxes_removed": duplicate_annotation_boxes_removed,
+        "duplicate_annotation_boxes": duplicate_annotation_boxes,
+        "manifest_sha256": file_hash(manifest_path),
+    }
+    audit_path = Path(args.audit_report or output_dir / "dataset_audit.json")
+    _write_json(audit_path, audit)
+    print(json.dumps(audit, indent=2, sort_keys=True))
+    print(f"[OK] Dataset written to {output_dir}")
 
 
-# ---------------------------------------------------------------------------
-# Train command
-# ---------------------------------------------------------------------------
 def cmd_train(args: argparse.Namespace) -> None:
     from ultralytics import YOLO
 
-    print("=" * 60)
-    print("  NEU-DET YOLO11n Training")
-    print("=" * 60)
-
-    model = YOLO("yolo11n.pt")  # pretrained YOLO11n (nano)
-
-    results = model.train(
+    model = YOLO(args.model)
+    model.train(
         data=args.data,
         epochs=args.epochs,
         batch=args.batch,
         imgsz=args.imgsz,
+        device=args.device,
+        workers=args.workers,
         seed=SEED,
-        patience=20,           # early stopping patience
+        deterministic=True,
+        patience=args.patience,
         save=True,
         save_period=10,
-        project="runs/detect",
-        name="neu-det-yolo11n",
-        exist_ok=True,
-        # Augmentation (standard YOLO defaults)
+        project=str(Path(args.project).resolve()),
+        name=args.name,
+        exist_ok=False,
+        optimizer="auto",
+        cache=False,
         hsv_h=0.015,
         hsv_s=0.7,
         hsv_v=0.4,
@@ -315,115 +367,161 @@ def cmd_train(args: argparse.Namespace) -> None:
         mixup=0.0,
         copy_paste=0.0,
     )
-
-    print("\n[INFO] Training complete.")
-    print(f"[INFO] Best weights: runs/detect/neu-det-yolo11n/weights/best.pt")
+    print(f"[OK] Training outputs are under {Path(args.project).resolve() / args.name}")
 
 
-# ---------------------------------------------------------------------------
-# Evaluate command
-# ---------------------------------------------------------------------------
+def _ordered_model_names(model) -> list[str]:
+    names = model.names
+    return [names[index] for index in range(len(names))]
+
+
 def cmd_evaluate(args: argparse.Namespace) -> None:
+    import torch
+    import ultralytics
     from ultralytics import YOLO
 
-    print("=" * 60)
-    print("  NEU-DET Evaluation on Test Set")
-    print("=" * 60)
-
-    model = YOLO(args.weights)
+    weights_path = Path(args.weights).resolve()
+    model = YOLO(str(weights_path))
+    expected_names = list(CLASS_MAP)
+    if _ordered_model_names(model) != expected_names:
+        raise ValueError("Checkpoint class order does not match NEU-DET.")
 
     metrics = model.val(
         data=args.data,
         split="test",
         batch=args.batch,
         imgsz=args.imgsz,
-        save_json=True,
-        project="runs/detect",
-        name="neu-det-eval",
-        exist_ok=True,
+        conf=args.confidence,
+        device=args.device,
+        workers=args.workers,
+        plots=True,
+        save_json=False,
+        project=str(Path(args.project).resolve()),
+        name=args.name,
+        exist_ok=False,
     )
 
-    # Print summary
-    print("\n" + "=" * 60)
-    print("  EVALUATION RESULTS")
-    print("=" * 60)
+    precision = [float(value) for value in metrics.box.p]
+    recall = [float(value) for value in metrics.box.r]
+    f1_values = [float(value) for value in metrics.box.f1]
+    ap50 = [float(value) for value in metrics.box.ap50]
+    ap = [float(value) for value in metrics.box.ap]
+    class_ids = [int(value) for value in metrics.box.ap_class_index]
+    per_class = {
+        expected_names[class_id]: {
+            "precision": precision[index],
+            "recall": recall[index],
+            "f1": f1_values[index],
+            "map50": ap50[index],
+            "map50_95": ap[index],
+        }
+        for index, class_id in enumerate(class_ids)
+    }
 
-    # Overall metrics
-    print(f"\n  mAP@0.5      : {metrics.box.map50:.4f}")
-    print(f"  mAP@0.5:0.95 : {metrics.box.map:.4f}")
+    checkpoint_args = getattr(model, "ckpt", {}).get("train_args", {})
+    selected_training_args = {
+        key: checkpoint_args.get(key)
+        for key in (
+            "model",
+            "data",
+            "epochs",
+            "patience",
+            "batch",
+            "imgsz",
+            "device",
+            "workers",
+            "seed",
+            "deterministic",
+            "optimizer",
+        )
+    }
+    hardware = (
+        torch.cuda.get_device_name(0)
+        if torch.cuda.is_available()
+        else platform.processor() or "CPU"
+    )
+    summary = {
+        "checkpoint": str(weights_path),
+        "checkpoint_sha256": file_hash(weights_path),
+        "checkpoint_labels": expected_names,
+        "checkpoint_training_args": selected_training_args,
+        "dataset_yaml": str(Path(args.data).resolve()),
+        "evaluation_split": "test",
+        "evaluation_imgsz": args.imgsz,
+        "evaluation_confidence": args.confidence,
+        "overall": {
+            "precision": float(metrics.box.mp),
+            "recall": float(metrics.box.mr),
+            "f1_macro": macro_f1(precision, recall),
+            "map50": float(metrics.box.map50),
+            "map50_95": float(metrics.box.map),
+        },
+        "per_class": per_class,
+        "speed_ms_per_image": {
+            key: float(value) for key, value in metrics.speed.items()
+        },
+        "runtime": {
+            "hardware": hardware,
+            "python": platform.python_version(),
+            "pytorch": torch.__version__,
+            "ultralytics": ultralytics.__version__,
+        },
+        "artifacts_directory": str(metrics.save_dir),
+    }
+    _write_json(Path(args.report), summary)
+    print(json.dumps(summary, indent=2, sort_keys=True))
+    print(f"[OK] Evaluation summary written to {args.report}")
 
-    # Per-class
-    class_names = list(CLASS_MAP.keys())
-    print(f"\n  {'Class':<20s} {'P':>8s} {'R':>8s} {'mAP50':>8s} {'mAP50-95':>8s}")
-    print("  " + "-" * 54)
 
-    ap50_per_class = metrics.box.ap50
-    ap_per_class = metrics.box.ap
-    p_per_class = metrics.box.p
-    r_per_class = metrics.box.r
-
-    for i, cls_name in enumerate(class_names):
-        if i < len(ap50_per_class):
-            print(
-                f"  {cls_name:<20s} "
-                f"{p_per_class[i]:>8.4f} "
-                f"{r_per_class[i]:>8.4f} "
-                f"{ap50_per_class[i]:>8.4f} "
-                f"{ap_per_class[i]:>8.4f}"
-            )
-
-    print("  " + "-" * 54)
-    mp = metrics.box.mp
-    mr = metrics.box.mr
-    print(f"  {'ALL (mean)':<20s} {mp:>8.4f} {mr:>8.4f} {metrics.box.map50:>8.4f} {metrics.box.map:>8.4f}")
-
-    # F1
-    f1 = 2 * mp * mr / (mp + mr) if (mp + mr) > 0 else 0.0
-    print(f"\n  F1 (macro avg): {f1:.4f}")
-
-    print(f"\n  Confusion matrix and result images saved to: runs/detect/neu-det-eval/")
-    print("  Done ✓")
-
-
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="NEU-DET YOLO11n Training & Evaluation Pipeline"
+        description="Prepare, train, and evaluate YOLO11n on NEU-DET."
     )
-    subparsers = parser.add_subparsers(dest="command")
+    commands = parser.add_subparsers(dest="command", required=True)
 
-    # -- prepare --
-    p_prep = subparsers.add_parser("prepare", help="Convert VOC→YOLO, split, check integrity")
-    p_prep.add_argument("--raw-images", required=True, help="Path to raw NEU-DET IMAGES folder")
-    p_prep.add_argument("--raw-annots", required=True, help="Path to raw NEU-DET ANNOTATIONS folder")
-    p_prep.add_argument("--output-dir", default="./datasets/NEU-DET", help="Output YOLO dataset dir")
+    prepare = commands.add_parser(
+        "prepare", help="Convert VOC to YOLO, split, and audit the dataset."
+    )
+    prepare.add_argument("--raw-images", required=True)
+    prepare.add_argument("--raw-annots", required=True)
+    prepare.add_argument("--output-dir", default="datasets/NEU-DET")
+    prepare.add_argument("--source-archive")
+    prepare.add_argument("--audit-report")
+    prepare.set_defaults(handler=cmd_prepare)
 
-    # -- train --
-    p_train = subparsers.add_parser("train", help="Train YOLO11n on NEU-DET")
-    p_train.add_argument("--data", default="./dataset_neu.yaml", help="Dataset YAML")
-    p_train.add_argument("--epochs", type=int, default=100)
-    p_train.add_argument("--batch", type=int, default=16)
-    p_train.add_argument("--imgsz", type=int, default=640)
+    train = commands.add_parser("train", help="Train a fresh YOLO11n checkpoint.")
+    train.add_argument("--model", default="yolo11n.pt")
+    train.add_argument("--data", default="ai/dataset_neu.yaml")
+    train.add_argument("--epochs", type=int, default=100)
+    train.add_argument("--patience", type=int, default=20)
+    train.add_argument("--batch", type=int, default=16)
+    train.add_argument("--imgsz", type=int, default=640)
+    train.add_argument("--device")
+    train.add_argument("--workers", type=int, default=4)
+    train.add_argument("--project", default="runs/detect")
+    train.add_argument("--name", default="neu-det-yolo11n")
+    train.set_defaults(handler=cmd_train)
 
-    # -- evaluate --
-    p_eval = subparsers.add_parser("evaluate", help="Evaluate checkpoint on test set")
-    p_eval.add_argument("--weights", required=True, help="Path to best.pt")
-    p_eval.add_argument("--data", default="./dataset_neu.yaml", help="Dataset YAML")
-    p_eval.add_argument("--batch", type=int, default=16)
-    p_eval.add_argument("--imgsz", type=int, default=640)
+    evaluate = commands.add_parser("evaluate", help="Evaluate on the held-out test split.")
+    evaluate.add_argument("--weights", required=True)
+    evaluate.add_argument("--data", default="ai/dataset_neu.yaml")
+    evaluate.add_argument("--batch", type=int, default=16)
+    evaluate.add_argument("--imgsz", type=int, default=640)
+    evaluate.add_argument("--confidence", type=float, default=0.001)
+    evaluate.add_argument("--device")
+    evaluate.add_argument("--workers", type=int, default=4)
+    evaluate.add_argument("--project", default="runs/detect")
+    evaluate.add_argument("--name", default="neu-det-eval")
+    evaluate.add_argument(
+        "--report", default="ai/evaluation/evaluation_summary.json"
+    )
+    evaluate.set_defaults(handler=cmd_evaluate)
+    return parser
 
-    args = parser.parse_args()
 
-    if args.command == "prepare":
-        cmd_prepare(args)
-    elif args.command == "train":
-        cmd_train(args)
-    elif args.command == "evaluate":
-        cmd_evaluate(args)
-    else:
-        parser.print_help()
+def main() -> None:
+    args = build_parser().parse_args()
+    args.handler(args)
 
 
 if __name__ == "__main__":

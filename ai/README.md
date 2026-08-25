@@ -8,8 +8,9 @@ HTTP service and does not expose another port.
 The supplied `best.pt` artifact is a provisional Ultralytics YOLO11n detection
 checkpoint with six labels. It is integrated so the team can test the complete
 technical path, but it is **not documented as the final selected model** because
-the repository does not include the dataset protocol, candidate comparison, or
-evaluation results required by D-01 and D-02.
+its original split manifest and run outputs were not supplied. The repository
+now contains a clean seed-42 dataset protocol for a future retraining run, but it
+must not be presented as the provenance of the current artifact.
 
 | Property | Recorded value |
 | --- | --- |
@@ -19,8 +20,8 @@ evaluation results required by D-01 and D-02.
 | Input | RGB, aspect-ratio-preserving resize and padding to 640 × 640 |
 | Artifact size | 5,426,138 bytes |
 | SHA-256 | `f33543468e7020ac291fc424fafc3b40555b2e45e206182bfb1bab9d1fa9baaf` |
-| Artifact source/training run | Not supplied; AI owner follow-up required |
-| Accuracy/precision/recall/F1/mAP | Not supplied; must not be inferred |
+| Artifact source/training run | Embedded arguments exist; original split and run directory were not supplied |
+| Held-out test metrics | Not supplied; embedded validation values are not test evidence |
 
 The adapter verifies the sidecar checksum before loading the pickle-based model
 and validates the exact checkpoint label order.
@@ -71,6 +72,26 @@ python -m pytest ai/tests -q
 `test_model_smoke.py` automatically exercises the bundled model and Grad-CAM
 when Ultralytics is installed, including inside the backend Docker image.
 
+## Dataset, training, and evaluation
+
+Run the reproducible pipeline from the repository root:
+
+```powershell
+python -m ai.train_eval_pipeline prepare --help
+python -m ai.train_eval_pipeline train --help
+python -m ai.train_eval_pipeline evaluate --help
+```
+
+Preparation requires the original NEU-DET `IMAGES` and `ANNOTATIONS` folders,
+refuses a non-empty output directory, removes exact duplicates deterministically,
+and generates a safe audit without committing dataset files. Evaluation writes
+machine-readable overall and per-class metrics for the held-out test split.
+
+See [`training_evaluation_report.md`](training_evaluation_report.md) for the
+exact commands, verified dataset audit, embedded checkpoint metadata, model
+selection status, and evidence gaps. Do not evaluate the bundled checkpoint on
+the new split as if it were held out: its original training split is unknown.
+
 ## Technical benchmark
 
 The benchmark uses the existing model runtime to record checkpoint metadata,
@@ -88,7 +109,9 @@ synthetic benchmark is not a model-quality or accuracy test.
 
 ## Remaining AI evidence
 
-- Resolve dataset provenance, split, preprocessing, and augmentation under D-01.
-- Record candidate-model evaluation and approve the final architecture under D-02.
+- Train a fresh checkpoint from the committed dataset protocol and archive its
+  exact environment/run metadata.
+- Record held-out overall/per-class results, confusion matrix, reviewed failure
+  examples, and a same-split candidate decision under D-02.
 - Approve the recommendation mapping under D-03.
 - Rehearse the provisional CPU artifact on the approved demo hardware under D-06.

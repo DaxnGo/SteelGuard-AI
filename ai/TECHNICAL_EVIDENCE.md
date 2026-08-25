@@ -24,6 +24,13 @@ start. The confidence threshold is deployment configuration, not a model metric;
 the safe code default is `0.25` and the benchmark below deliberately uses `0.0`
 so a deterministic synthetic input can exercise the full path.
 
+The checkpoint also embeds Ultralytics `8.4.21`, creation date
+`2026-03-09T08:40:48.490520`, data argument `neu.yaml`, 50 requested epochs,
+batch 16, training image size 224, seed 0, patience 100, and device `0`. Those
+arguments do not match the new seed-42, 100-epoch, 640-pixel pipeline. The
+original split manifest and run directory remain unavailable, so the new
+pipeline must not be claimed as this artifact's provenance.
+
 ## Same-pass Grad-CAM validation
 
 `ModelEngine.predict()` registers a forward hook on layer index 10 (`C2PSA`),
@@ -68,11 +75,17 @@ not be used as a quality claim.
 Use `--image <authorized-image-path>` to measure a representative image. Record
 that image's provenance outside Git when it cannot legally be redistributed.
 
-## Evidence still required from the AI/domain owners
+## Evidence status and remaining approvals
 
-- Dataset source, version, license, class counts, and authorized access method.
-- Frozen train/validation/test manifests, random seed, and duplicate/leakage audit.
-- Exact training and evaluation commands/configuration that produced `best.pt`.
+The official NEU-DET archive, source checksum, class counts, deterministic
+train/validation/test protocol, seed, and exact-duplicate audit are now recorded
+in `ai/evaluation/dataset_audit.json`. The official source does not state a
+license, so production/commercial permission remains unresolved.
+
+Still required:
+
+- A fresh training run from the committed split, with the exact environment and
+  resulting checkpoint checksum archived.
 - Held-out precision, recall, F1, mAP, per-class results, confusion matrix,
   calibration analysis, and representative failure cases.
 - Evidence comparing YOLO11n with the evaluated alternatives and the approved

@@ -304,3 +304,52 @@ inspection-event log and must never contain user images or predictions.
   the production threshold.
 - Dataset provenance/splits, held-out metrics, candidate comparison, and the
   quality-owner recommendation mapping remain assigned to the AI/domain owners.
+
+## 2026-08-25 — Auditable AI dataset and evaluation pipeline
+
+**Status:** Pipeline and dataset audit verified; final model-quality evidence pending
+
+### Changes
+
+- Replaced the uploaded training script with deterministic `prepare`, `train`,
+  and `evaluate` commands that can be run from the repository root.
+- Audited the official NEU-DET archive without committing it. The source contains
+  1,800 images and annotations; one exact duplicate image is excluded, leaving a
+  documented 1,259/360/180 train/validation/test split with seed 42.
+- Added strict filename/class and Pascal VOC validation, duplicate-image and
+  split-leakage checks, deterministic duplicate removal, and refusal to mix a
+  new preparation run into a non-empty output directory.
+- Added machine-readable overall/per-class evaluation output, macro-F1,
+  confusion-matrix generation, runtime metadata, checkpoint label validation,
+  and SHA-256 recording.
+- Corrected the AI documentation to distinguish the current checkpoint's
+  embedded 224-pixel, 50-epoch, seed-0 metadata from the new future-run protocol.
+  Unsupported license, held-out accuracy, and candidate-comparison claims were
+  removed.
+
+### Validation
+
+- Eight focused pipeline regression tests pass.
+- Dataset preparation completed from the official archive and produced the
+  expected class counts, split sizes, duplicate audit, and manifest checksum.
+- Local AI/backend suite: 51 passed and 1 optional heavy-runtime test skipped.
+- Rebuilt backend Docker image: 19 AI tests passed inside the production image,
+  including the bundled checkpoint and same-pass Grad-CAM smoke test.
+- Frontend suite: 56 passed; the Streamlit-to-dummy-FastAPI Phase 2 smoke test
+  also passed.
+- The evaluator completed a real diagnostic run with the bundled checkpoint and
+  produced all expected metric and plot artifacts. Its numeric results are not
+  treated as held-out evidence because the checkpoint's original split is
+  unknown.
+
+### Pending evidence and approvals
+
+- Train a fresh checkpoint from the documented split, then publish its untouched
+  test-set metrics, per-class results, confusion matrix, and reviewed prediction
+  examples.
+- Compare model candidates on the same split or approve explicit acceptance
+  criteria for YOLO11n.
+- Confirm production usage rights for NEU-DET; neither the official page nor the
+  inspected mirror provides an affirmative dataset license.
+- Obtain the quality/domain owner's official six-class recommendation mapping
+  before enabling production model mode.

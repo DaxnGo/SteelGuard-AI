@@ -1,0 +1,80 @@
+{
+  "dataset": "NEU-DET",
+  "duplicate_annotation_boxes": [
+    {
+      "annotation": "crazing_120.xml",
+      "removed": 1
+    },
+    {
+      "annotation": "inclusion_62.xml",
+      "removed": 1
+    },
+    {
+      "annotation": "patches_198.xml",
+      "removed": 1
+    }
+  ],
+  "duplicate_annotation_boxes_removed": 3,
+  "duplicate_check": "Passed after deterministic exact-duplicate exclusion; no SHA-256 duplicates remain within or across splits.",
+  "excluded_exact_duplicates": [
+    {
+      "excluded": "patches_105.jpg",
+      "kept": "patches_101.jpg",
+      "sha256": "4d2de82731b86cdbc7a66f2a9bfb01074bb4cb65e47bccf06b66470d53857071"
+    }
+  ],
+  "images_total_source": 1800,
+  "images_total_used": 1799,
+  "license_status": "Not specified by the official source; permission required for production use.",
+  "manifest_sha256": "c4f7538ebd54336986c17a08e73af963cf62c1c67cad4b3ea639d59b290a179f",
+  "official_source": "https://faculty.neu.edu.cn/songkc/en/zdylm/263270/list/index.htm",
+  "source_archive_sha256": "cf04bb0b05d364f23e05031b191b20b908a0e5eb11466df74ee7fba98ec835d5",
+  "source_images_per_class": {
+    "crazing": 300,
+    "inclusion": 300,
+    "patches": 300,
+    "pitted_surface": 300,
+    "rolled-in_scale": 300,
+    "scratches": 300
+  },
+  "split_counts": {
+    "test": {
+      "crazing": 30,
+      "inclusion": 30,
+      "patches": 30,
+      "pitted_surface": 30,
+      "rolled-in_scale": 30,
+      "scratches": 30
+    },
+    "train": {
+      "crazing": 210,
+      "inclusion": 210,
+      "patches": 209,
+      "pitted_surface": 210,
+      "rolled-in_scale": 210,
+      "scratches": 210
+    },
+    "val": {
+      "crazing": 60,
+      "inclusion": 60,
+      "patches": 60,
+      "pitted_surface": 60,
+      "rolled-in_scale": 60,
+      "scratches": 60
+    }
+  },
+  "split_ratios": {
+    "test": 0.1,
+    "train": 0.7,
+    "val": 0.2
+  },
+  "split_seed": 42,
+  "used_images_per_class": {
+    "crazing": 300,
+    "inclusion": 300,
+    "patches": 299,
+    "pitted_surface": 300,
+    "rolled-in_scale": 300,
+    "scratches": 300
+  }
+}
