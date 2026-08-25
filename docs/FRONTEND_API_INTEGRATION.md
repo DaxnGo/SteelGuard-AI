@@ -1,7 +1,7 @@
 # SteelGuard AI Frontend API Integration Readiness
 
-> **Current mode:** Mock API
-> **Dummy backend status:** FastAPI Phase 1 available; local FE-to-BE smoke test verified
+> **Default mode:** Mock API
+> **Live-path status:** Dummy and provisional model-backed FastAPI flows verified
 > **Frontend boundary:** `frontend/services/api_client.py`
 
 Phase 2 now has a reproducible cross-service check:
@@ -71,7 +71,7 @@ With `STEELGUARD_USE_MOCK_API=true` or with the variable unset:
    and rejects malformed non-null references.
 4. The UI receives only the normalized internal structure.
 
-## Prepared real-mode behavior
+## Real-mode behavior
 
 With real mode deliberately enabled, the service:
 
@@ -84,10 +84,11 @@ With real mode deliberately enabled, the service:
 6. parses JSON and validates it through the same normalized response boundary;
 7. performs no automatic retry and never falls back to mock data.
 
-The Phase 1 dummy backend has been exercised locally with one real
-`GET /health` request and one real `POST /predict` request. The automated client
-tests still use mocked Requests transport; the final integration test must run
-against the confirmed deployment configuration.
+The dummy backend and provisional model adapter have both been exercised through
+real `GET /health` and `POST /predict` requests. The model path has also passed
+the complete Streamlit upload, Analyze, result, Grad-CAM, and reset workflow in
+Docker Compose. Final acceptance still requires approved D-03 through D-06
+deployment values and model evidence.
 
 ## Prepared error mapping
 
@@ -118,8 +119,8 @@ When the real AI service and deployment settings become available:
 
 - [x] Confirm the Phase 1 dummy `POST /predict` against `docs/API_CONTRACT.md`.
 - [ ] Confirm the final Grad-CAM transport representation.
-- [ ] Require a non-empty Grad-CAM representation in live mode after transport
-      confirmation; retain `null` only for the dummy stage.
+- [x] Return and render a non-empty PNG data URI in provisional model mode;
+      retain `null` only for the dummy stage.
 - [ ] Resolve D-04 and record approved upload-size and timeout values.
 - [ ] Verify the backend accepts exactly one multipart field named `file`.
 - [ ] Set `STEELGUARD_USE_MOCK_API=false` in the target environment.

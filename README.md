@@ -3,18 +3,20 @@
 Intelligent Steel Surface Defect Detection for Smart Manufacturing.
 
 SteelGuard AI is a competition-project monorepo for single-image steel surface
-inspection. The Streamlit frontend accepts one image, calls either the local
-mock or the Phase 1 FastAPI dummy backend, and displays a defect class,
-confidence score, quality recommendation, and an honest Grad-CAM placeholder.
+inspection. The Streamlit frontend accepts one image, calls either its local
+mock or the FastAPI backend, and displays the returned defect class, confidence
+score, quality recommendation, and Grad-CAM explanation. The backend can use
+the safe dummy adapter or an explicitly configured provisional model adapter.
 
 The repository currently contains:
 
 - a working single-page Streamlit frontend with upload, validation, preview,
   loading, result, error, retry, and reset states;
 - a validated mock prediction service and configurable Requests API client;
-- a Phase 1 FastAPI backend with `/health` and dummy `/predict` endpoints;
+- a FastAPI backend with contract-stable dummy and explicit real-model adapters;
 - backend request validation, error responses, tests, and a Dockerfile;
-- documented backend and AI boundaries;
+- an in-process provisional YOLO11n adapter with checksum verification and
+  Grad-CAM PNG data-URI generation;
 - an API contract for the prediction endpoint;
 - a contract-shaped mock response used by the frontend; and
 - repository documentation for scope, flow, and ownership.
@@ -28,14 +30,16 @@ backend.
 - The Streamlit frontend completes the one-image workflow with explicit mock
   AI output.
 - The prediction client defaults to mock mode and includes a configuration-
-  gated, mocked-test-covered Requests adapter for future `POST /predict` use.
+  gated Requests adapter that is verified against dummy and model-backed
+  `POST /predict` responses.
 - Frontend components, Pillow validation, response validation, errors, retry,
   and reset are implemented and covered by automated tests.
-- The Phase 1 FastAPI backend and dummy AI adapter are available; the trained
-  deep-learning model remains future work.
+- The supplied provisional YOLO11n checkpoint is integrated behind
+  `STEELGUARD_AI_MODE=model`; dummy mode remains the safe default.
 - Phase 2 FE-to-dummy-BE `POST /predict` integration is reproducibly smoke-tested
   with `python scripts/phase2_smoke_test.py`.
-- Generated Grad-CAM and the final recommendation policy remain future work.
+- Live Grad-CAM generation is implemented using the recommended PNG data-URI
+  transport; D-03 recommendation approval and final model evidence remain open.
 - Docker Compose now defines healthy backend and frontend services; live mode
   requires explicit environment values while D-04 remains open.
 
@@ -95,15 +99,15 @@ docker compose up --build
 
 The frontend is exposed at <http://localhost:8501> and the backend at
 <http://localhost:8000>. Compose keeps the frontend in mock mode by default;
-set the live API variables in `.env` to exercise the dummy backend through the
-container network.
+set the live API variables in `.env` to exercise the backend through the
+container network. Backend dummy/model selection is configured separately.
 
 ## Repository layout
 
 ```text
 frontend/   Streamlit application, UI boundaries, styles, and API client boundary
-backend/    FastAPI request validation, dummy prediction API, tests, and Docker
-ai/         AI integration guidance; no model or inference code yet
+backend/    FastAPI validation, adapter orchestration, tests, and Docker
+ai/         Provisional model artifact, checksum, inference, Grad-CAM, and tests
 docs/       Product, architecture, API, UI, and development documentation
 mock/       Contract-shaped fixtures for independent frontend development
 ```

@@ -1,1 +1,1 @@
-# Empty — marks app/ as a Python package
+"""SteelGuard AI model and framework-isolated inference boundary."""

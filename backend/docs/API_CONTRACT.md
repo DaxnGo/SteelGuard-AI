@@ -148,9 +148,10 @@ Final format after AI integration (D-05 remains open):
 "gradcam_image": "data:image/png;base64,<base64-encoded-png>"
 ```
 
-During Phase 1, `gradcam_image` is `null`. The final live representation and
-its lifecycle remain subject to D-05; the frontend already preserves the field
-and renders the dummy placeholder without generating a heatmap.
+During dummy integration, `gradcam_image` is `null`. The current in-process
+model adapter returns an in-memory PNG data URI, which the frontend validates
+and renders without storing generated output. Formal D-05 sign-off remains
+required before target-environment activation.
 
 ---
 

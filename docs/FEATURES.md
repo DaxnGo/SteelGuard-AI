@@ -24,20 +24,20 @@ Upload ONE steel image
 | Single JPEG/PNG selection | Available | Frontend |
 | Local validation and image preview | Available | Frontend |
 | One mock prediction service call | Available | Frontend |
-| One live `POST /predict` request | Planned | Frontend and backend |
-| Six-class inference | Planned | AI |
+| One live `POST /predict` request | Available | Frontend and backend |
+| Six-class inference | Provisional; evidence pending | AI |
 | Six-class result presentation | Available | Frontend |
-| Confidence presentation | Available with mock data | Frontend |
-| Generated Grad-CAM output | Planned | AI and backend |
+| Confidence presentation | Available | Frontend |
+| Generated Grad-CAM output | Provisional PNG data URI available | AI and backend |
 | Honest Grad-CAM placeholder | Available | Frontend |
-| Recommendation presentation | Available with mock data | Frontend |
-| Recommendation logic | Planned | AI, backend, and product |
+| Recommendation presentation | Available | Frontend |
+| Recommendation logic | Configuration-gated; D-03 approval pending | AI, backend, and product |
 | Recoverable error, retry, and reset states | Available | Frontend |
 | Contract-shaped mock response | Available | Shared |
 
-"Available" means implemented in the repository. "Available with mock data"
-means the presentation path works but does not claim live AI behavior.
-"Planned" means specified but intentionally not implemented yet.
+"Available" means implemented in the repository. "Provisional" means the
+technical path works but is not final model-quality evidence or production
+approval. "Planned" means specified but intentionally not implemented yet.
 
 ## Supported defect classes
 

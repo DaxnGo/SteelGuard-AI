@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from app.schemas.prediction import PredictionDetail, PredictionResponse
 from app.services.ai_service import run_inference
-from app.utils.image_validation import validate_image
+from app.utils.image_validation import ImageValidationError, validate_image
 
 
 class InferenceError(Exception):

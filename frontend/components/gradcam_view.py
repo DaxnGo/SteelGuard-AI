@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
+from io import BytesIO
 from pathlib import Path
 
+from PIL import Image, UnidentifiedImageError
 import streamlit as st
 
 from utils.image_validator import ValidatedImage
@@ -11,12 +15,35 @@ from utils.image_validator import ValidatedImage
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 FRONTEND_DIRECTORY = Path(__file__).resolve().parents[1]
+PNG_DATA_URI_PREFIX = "data:image/png;base64,"
+MAX_GRADCAM_BYTES = 10 * 1024 * 1024
+
+
+def decode_gradcam_data_uri(reference: str | None) -> bytes | None:
+    """Decode one bounded backend PNG data URI, or reject it safely."""
+
+    if not isinstance(reference, str) or not reference.startswith(PNG_DATA_URI_PREFIX):
+        return None
+    encoded = reference[len(PNG_DATA_URI_PREFIX) :]
+    if len(encoded) > ((MAX_GRADCAM_BYTES + 2) // 3) * 4:
+        return None
+    try:
+        decoded = base64.b64decode(encoded, validate=True)
+        if not decoded or len(decoded) > MAX_GRADCAM_BYTES:
+            return None
+        with Image.open(BytesIO(decoded)) as image:
+            if image.format != "PNG":
+                return None
+            image.verify()
+    except (binascii.Error, OSError, UnidentifiedImageError):
+        return None
+    return decoded
 
 
 def find_local_gradcam(reference: str | None) -> Path | None:
     """Resolve a mock Grad-CAM filename only within known project folders."""
 
-    if reference is None:
+    if reference is None or reference.startswith("data:"):
         return None
 
     safe_name = Path(reference).name
@@ -51,8 +78,19 @@ def render_gradcam_view(image: ValidatedImage, gradcam_reference: str | None) ->
     with gradcam_column:
         with st.container(border=True):
             st.markdown("### AI Attention Map")
-            gradcam_path = find_local_gradcam(gradcam_reference)
-            if gradcam_path is not None:
+            gradcam_bytes = decode_gradcam_data_uri(gradcam_reference)
+            gradcam_path = (
+                None
+                if gradcam_bytes is not None
+                else find_local_gradcam(gradcam_reference)
+            )
+            if gradcam_bytes is not None:
+                st.image(
+                    gradcam_bytes,
+                    caption="Backend-supplied Grad-CAM attention map",
+                    width="stretch",
+                )
+            elif gradcam_path is not None:
                 st.image(
                     str(gradcam_path),
                     caption="Backend-supplied Grad-CAM attention map",

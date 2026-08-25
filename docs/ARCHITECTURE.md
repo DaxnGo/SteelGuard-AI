@@ -5,10 +5,10 @@
 SteelGuard AI uses a deliberately small three-boundary architecture for the
 preliminary MVP.
 
-The implemented frontend phase preserves this target boundary by routing
+The frontend preserves this boundary by routing
 `predict_image(...)` through `services/api_client.py`, which supports both the
-validated mock response and the Phase 2 dummy `POST /predict` path. Replacing
-the dummy adapter with real AI must not require presentation-component changes.
+validated mock response and the `POST /predict` path. The backend selects the
+dummy or provisional model adapter without presentation-component changes.
 
 ```mermaid
 flowchart LR
@@ -67,10 +67,9 @@ capabilities for the preliminary MVP.
    JSON response.
 7. Streamlit renders the returned values and provides a reset action.
 
-Before the real model is available, steps 3–6 can use either the local mock
-prediction service or the Phase 1 FastAPI dummy backend. Both return the same
-logical response shape, do not perform real AI or recommendation logic, and the
-frontend source label identifies which mode is selected.
+For independent development, steps 3–6 can still use either the local mock
+prediction service or the FastAPI dummy adapter. Model mode is explicit,
+requires a complete recommendation mapping, and never falls back to dummy data.
 
 No database is required in this flow. User images, results, and Grad-CAM output
 must not become inspection history. If the confirmed transport uses temporary
@@ -81,12 +80,12 @@ a persistent product feature.
 
 - The frontend runs on Streamlit port `8501`.
 - The backend runs as a separate FastAPI process and container.
-- The AI adapter will execute inside, or be imported by, the backend process for
-  the preliminary MVP; it is not a network microservice.
+- The AI adapter executes inside the backend process for the preliminary MVP;
+  it is not a network microservice.
 - Docker Compose defines a health-checked backend and frontend service. The
   frontend remains mock mode by default until live timeout settings are chosen.
-- The frontend API base URL will be configured by environment during the
-  integration phase rather than hard-coded into UI components.
+- The frontend API base URL is configured by environment rather than hard-coded
+  into UI components.
 
 ## Failure boundaries
 

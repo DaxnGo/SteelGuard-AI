@@ -4,7 +4,7 @@
 >
 > **Document status:** Approved direction; preliminary MVP implementation is planned
 >
-> **Repository status:** Frontend mock MVP and Phase 1 dummy backend complete; real AI implementation remains planned
+> **Repository status:** Frontend and backend complete through dummy integration; a provisional real-model adapter is implemented while model-selection evidence and deployment decisions remain open
 
 The preliminary competition MVP has one non-negotiable product boundary:
 
@@ -21,25 +21,28 @@ classify a defect in one uploaded steel image, report the model's confidence,
 show a Grad-CAM explanation, and present an `ACCEPT`, `REWORK`, or `REJECT`
 recommendation to an operator.
 
-The repository now contains a foundation, a working mock-driven frontend, and a
-Phase 1 dummy backend:
+The repository now contains a foundation, a working frontend and backend, and a
+provisional model integration:
 
 - a runnable one-page Streamlit inspection workflow;
 - implemented upload, Pillow validation, preview, loading, result, error,
   retry, reset, and responsive presentation components;
-- a validated mock prediction service behind the future API client boundary;
+- a validated mock prediction service behind the configurable API client boundary;
 - a FastAPI `/health` and `/predict` implementation with request validation,
   dummy adapter, tests, and Docker support;
+- an explicit in-process YOLO11n adapter with artifact checksum validation,
+  single-result inference, and same-pass Grad-CAM generation;
 - a stable prediction API contract and contract-shaped mock response;
 - frontend and backend Dockerfiles with a health-checked two-service Compose
   foundation; and
 - product, architecture, UI, and development documentation.
 
-The trained model, real inference adapter, final live HTTP settings, and
-Grad-CAM generation are planned work. The preliminary MVP is successful when
-an operator can select one supported image, run one inference, view all four
-backend-supplied outputs, recover from errors, and reset the interface for a
-new independent image.
+The provisional adapter and PNG data-URI transport are implemented. Dataset and
+model-selection evidence, the domain-approved recommendation policy, final live
+HTTP settings, Grad-CAM transport sign-off, and deployment assumptions remain
+open decisions. The preliminary MVP is successful when an operator can select
+one supported image, run one inference, view all four backend-supplied outputs,
+recover from errors, and reset the interface for a new independent image.
 
 ### Decision register
 
@@ -297,9 +300,9 @@ flowchart LR
 | Subsystem | Current repository state | Preliminary MVP target |
 | --- | --- | --- |
 | Frontend | Complete one-image state flow with mock and configurable live API client | Use the contract-defined live API with the real AI adapter |
-| Backend | Runnable FastAPI Phase 1 dummy prediction service with validation and tests | Replace the dummy adapter with the real AI adapter |
-| AI | Responsibility documentation only | Reproducible trained artifact and single-image adapter |
-| Containers | Frontend and backend Dockerfiles with two-service Compose | Healthy frontend and backend services with model access |
+| Backend | Runnable FastAPI service with validation plus explicit dummy/model adapter modes | Complete final policy and deployment approval without changing the HTTP contract |
+| AI | Provisional YOLO11n artifact, checksum, adapter, same-pass Grad-CAM, and tests | Add reproducible training/evaluation evidence and approve final selection |
+| Containers | Healthy non-root frontend/backend images and two-service Compose with model access | Rehearse the approved target configuration and hardware |
 
 ## 12. Technology Stack
 
@@ -308,12 +311,12 @@ flowchart LR
 | Language/runtime | Python 3.11 | Current frontend container baseline; backend and AI environments must remain compatible |
 | Frontend | Streamlit | Current dependency and implemented single-image operator interface |
 | Frontend HTTP and imaging | Requests and Pillow | Configurable mock/real API boundary; Phase 2 dummy endpoint smoke-tested |
-| Backend | FastAPI | Implemented contract-defined inference API and validation boundary; real AI remains pending |
-| AI models | CNN, MobileNetV2, EfficientNetB0, ResNet50 | Candidate architectures; final selection is D-02 |
-| AI framework | To be confirmed | D-02; framework tensors must remain behind the adapter |
+| Backend | FastAPI | Implemented contract-defined inference API, validation boundary, and explicit dummy/model modes |
+| AI models | Provisional YOLO11n; other candidates remain unevaluated | Final selection and acceptance evidence remain D-02 |
+| AI framework | Ultralytics 8.4.127 and PyTorch 2.12.1 CPU for the provisional adapter | Final framework/weight policy remains subject to D-02 and D-06 approval |
 | Dataset | NEU Surface Defect Database | Supplied six-class project dataset; governance and preparation details are D-01 |
-| Explainability | Grad-CAM | Planned explanation for the same classification inference |
-| Testing | Python unittest, Streamlit AppTest, and backend pytest | Frontend and Phase 1 backend checks; AI/model-quality checks remain planned |
+| Explainability | Grad-CAM | Implemented from the selected score and same forward pass; D-05 transport sign-off remains open |
+| Testing | Python unittest, Streamlit AppTest, and pytest | Frontend, backend, AI adapter, live HTTP, integration, and model smoke checks exist; model-quality evaluation remains pending |
 | Containers | Docker and Docker Compose | Current frontend container foundation; target local two-service startup |
 | Source control | Git with Conventional Commits | Current repository history and planned team workflow |
 
@@ -492,7 +495,7 @@ Field: file (exactly one JPEG or PNG file)
 | `prediction.class_name` | string | One exact supported class label |
 | `prediction.confidence` | number | Finite value from `0.0` through `1.0` |
 | `prediction.recommendation` | string | `ACCEPT`, `REWORK`, or `REJECT` |
-| `prediction.gradcam_image` | string or null | `null` during dummy integration; non-empty confirmed base64 or image-reference transport for live inference |
+| `prediction.gradcam_image` | string or null | `null` in dummy mode; provisional model mode returns a non-empty PNG data URI while D-05 sign-off remains open |
 
 The API contract recommends a PNG data URI containing base64-encoded bytes for
 the local Docker Compose MVP, but D-05 remains open until the frontend and
@@ -557,19 +560,19 @@ as evidence of model quality.
 
 ### Current foundation
 
-- `frontend/Dockerfile` uses Python 3.11, installs the current frontend
-  requirements, runs as a non-root user, and defines a Streamlit health check.
-- `docker-compose.yml` currently builds and exposes only the frontend on port
-  `8501`.
-- The backend container, AI dependencies, and model artifact delivery do not
-  yet exist.
+- `frontend/Dockerfile` uses Python 3.11, installs the frontend requirements,
+  runs as a non-root user, and defines a Streamlit health check.
+- `backend/Dockerfile` packages FastAPI, the AI adapter, CPU model runtime,
+  provisional artifact, and checksum under a non-root user.
+- `docker-compose.yml` builds both services, exposes ports `8501` and `8000`,
+  and starts the frontend after the backend health check succeeds.
+- Compose defaults to safe mock/dummy modes; live HTTP and model modes require
+  explicit environment configuration and never silently fall back.
 
 ### Preliminary MVP target
 
-- Add a backend Dockerfile only after the FastAPI application and dependency
-  definition exist.
-- Run FastAPI and the in-process AI adapter as one backend service listening on
-  the documented backend port.
+- Keep FastAPI and the in-process AI adapter in one backend service listening
+  on the documented backend port.
 - Configure the frontend in Compose with
   `STEELGUARD_API_BASE_URL=http://backend:8000`; do not hard-code service URLs
   in presentation components.
@@ -673,10 +676,10 @@ accepted, but end-to-end integration depends on all three boundaries.
 | --- | --- | --- | --- | --- |
 | 0. Foundation | Complete | Shared | Monorepo structure, readiness page, docs, mock response, frontend container | Current Streamlit page starts; repository boundaries and API contract are documented |
 | 1. Frontend MVP | Complete | Frontend | Upload, preview, Analyze, loading/error/success, mock result, Grad-CAM placeholder, retry, reset | Full state flow passes against the approved fixture; no AI output is derived in the frontend |
-| 2. Backend API | Phase 1 complete | Backend | FastAPI request validation, prediction endpoint, dummy adapter, errors, container | API and negative-path tests conform to the Phase 1 contract |
-| 3. AI baseline and selection | Planned | AI | Reproducible dataset protocol, candidate comparison, selected artifact, Grad-CAM, adapter | D-01 through D-03 are resolved; artifact evidence and adapter tests are complete |
-| 4. Integration | Dummy UI path and recovery verified | Shared | Streamlit → FastAPI dummy path, live HTTP failure handling, and two-service Compose | Approved D-04 values, real AI path, and final Grad-CAM decision remain before full MVP acceptance |
-| 5. Demo hardening | Planned | Shared | Recovery behavior, operator guidance, reproducibility evidence, rehearsal | Clean-machine Docker rehearsal and Definition of Done review pass |
+| 2. Backend API | Complete with dummy and provisional model modes | Backend | FastAPI request validation, prediction endpoint, adapter selection, errors, container | API and negative-path tests conform to the contract; model mode fails closed on invalid configuration |
+| 3. AI baseline and selection | Provisional adapter implemented; evidence pending | AI | Reproducible dataset protocol, candidate comparison, selected artifact, Grad-CAM, adapter | D-01 through D-03 are resolved; artifact evidence and adapter tests are complete |
+| 4. Integration | Real path implemented behind explicit configuration | Shared | Streamlit → FastAPI path, live HTTP failure handling, in-process AI, and two-service Compose | Approved D-03/D-04 values, D-05 sign-off, and final model evidence remain before full MVP acceptance |
+| 5. Demo hardening | In progress | Shared | Recovery behavior, operator guidance, reproducibility evidence, rehearsal | Clean-machine Docker rehearsal and Definition of Done review pass after final decisions and model evidence |
 
 > **Decision required D-07:** Assign people and target dates after team capacity
 > and the competition schedule are confirmed. Dates or names must not be

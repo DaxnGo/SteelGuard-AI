@@ -219,3 +219,59 @@ inspection-event log and must never contain user images or predictions.
 - The repository deliberately does not choose the numeric upload limit or
   connect/read timeouts. D-04 must be approved before live mode is enabled in
   the target environment.
+
+## 2026-08-25 — Provisional AI adapter and full container integration
+
+**Status:** Technically verified; final model, policy, and deployment approvals remain open
+
+### Changes
+
+- Reconciled the AI branch with the latest frontend/backend integration while
+  preserving the supplied checkpoint commit.
+- Replaced the duplicate standalone AI HTTP service with one in-process adapter
+  imported by FastAPI.
+- Added checkpoint checksum and exact label-order validation, lazy model loading,
+  one-result inference, and Grad-CAM generated from the selected score in the
+  same forward pass.
+- Added explicit `dummy` and `model` backend modes. Model mode requires a
+  complete recommendation mapping, fails startup on invalid configuration, and
+  never falls back to dummy output.
+- Added bounded PNG data-URI decoding in the frontend and removed duplicate AI
+  Docker/service definitions.
+- Updated the backend image with the CPU model runtime and model package, and
+  updated Compose to pass explicit AI configuration while retaining safe
+  mock/dummy defaults.
+- Synchronized the README, architecture, feature inventory, API integration,
+  API contract, project plan, and AI artifact documentation with the
+  implemented provisional path.
+
+### Validation
+
+- Local AI/backend tests: 40 passed; the heavy model smoke test skipped because
+  Ultralytics is intentionally installed in the backend image.
+- Frontend tests: 56 passed, including timeout, `400`, `413`, `415`, `422`,
+  `500`, `503`, malformed JSON, invalid response, accessibility, and responsive
+  layout coverage.
+- Backend-image tests: 41 passed, including the real checkpoint and Grad-CAM
+  smoke test.
+- Both Docker images built successfully; Compose backend and frontend became
+  healthy.
+- Browser rehearsal passed for live Streamlit upload, model-backed prediction,
+  confidence/recommendation presentation, backend-supplied Grad-CAM rendering,
+  and reset.
+- Browser responsive checks found no horizontal overflow at `375 x 812` or
+  `1280 x 800`; comparison columns stack on the narrow viewport and align on
+  desktop. The upload control is a native enabled button with `tabIndex=0` and
+  a visible 3 px focus outline.
+- The reproducible Streamlit-to-dummy-FastAPI Phase 2 smoke check remains green.
+
+### Pending decisions and evidence
+
+- The YOLO11n checkpoint is provisional. The AI owner must still provide D-01
+  dataset/split provenance and D-02 candidate evaluation, metrics, calibration,
+  and selection evidence.
+- The all-`REWORK` mapping and `1 MiB`, 2-second connect, and 30-second read
+  settings used for container rehearsal were test-only. They are not D-03 or
+  D-04 production decisions.
+- PNG data URI is implemented as the repository-recommended D-05 option, but
+  formal D-05 and D-06 target/deployment sign-off remains required.

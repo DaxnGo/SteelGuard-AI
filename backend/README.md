@@ -1,8 +1,8 @@
 # SteelGuard AI Backend
 
-FastAPI backend for SteelGuard AI. Phase 1 provides the contract-shaped dummy
-prediction API so the Streamlit frontend can integrate before the real AI model
-is available.
+FastAPI backend for SteelGuard AI. It keeps the public prediction contract
+stable while switching explicitly between the Phase 2 dummy adapter and the
+in-process provisional model adapter.
 
 The shared HTTP contract is documented in
 [`docs/API_CONTRACT.md`](../docs/API_CONTRACT.md). The backend-specific copy is
@@ -45,7 +45,8 @@ Returns `{ "status": "ok" }`.
 ### `POST /predict`
 
 Accepts one multipart field named `file` containing a validated JPEG or PNG.
-Phase 1 returns the dummy prediction with `gradcam_image: null`.
+Dummy mode returns the Phase 2 fixture with `gradcam_image: null`. Model mode
+returns the provisional checkpoint result and a Grad-CAM PNG data URI.
 
 Example:
 
@@ -64,9 +65,13 @@ python -m pytest backend/tests -q
 ## Docker
 
 ```powershell
-docker build -f backend/Dockerfile -t steelguard-backend backend
+docker build -f backend/Dockerfile -t steelguard-backend .
 docker run -p 8000:8000 steelguard-backend
 ```
+
+The container uses pinned CPU-only PyTorch wheels. Set `STEELGUARD_AI_MODE=model`
+only with a complete domain-approved `STEELGUARD_RECOMMENDATION_MAP_JSON`;
+invalid live configuration fails startup rather than falling back to dummy data.
 
 The backend enables CORS for the local Streamlit origin at
 `http://localhost:8501`. Authentication, history, analytics, batch inference,

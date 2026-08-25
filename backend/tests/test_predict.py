@@ -1,6 +1,9 @@
+import pytest
+
 from app.schemas.prediction import DefectClass, Recommendation
 from app.routes import predict as predict_route
 from app.services import prediction_service
+from app.services import ai_service
 
 
 def test_predict_with_valid_jpeg_returns_dummy_prediction(client, valid_jpeg_bytes):
@@ -198,6 +201,34 @@ def _dummy_adapter_output(**overrides) -> dict:
     }
     result.update(overrides)
     return result
+
+
+def test_ai_service_defaults_to_dummy_mode(monkeypatch):
+    monkeypatch.delenv("STEELGUARD_AI_MODE", raising=False)
+
+    result = ai_service.run_inference(object())
+
+    assert result["class_name"] == DefectClass.SCRATCHES
+    assert result["gradcam_image"] is None
+
+
+def test_ai_service_model_mode_never_falls_back_to_dummy(monkeypatch):
+    expected = _dummy_adapter_output(
+        class_name=DefectClass.CRAZING,
+        confidence=0.73,
+        gradcam_image="data:image/png;base64,AAAA",
+    )
+    monkeypatch.setenv("STEELGUARD_AI_MODE", "model")
+    monkeypatch.setattr(ai_service, "_run_model_inference", lambda image: expected)
+
+    assert ai_service.run_inference(object()) == expected
+
+
+def test_ai_service_rejects_unknown_mode(monkeypatch):
+    monkeypatch.setenv("STEELGUARD_AI_MODE", "automatic")
+
+    with pytest.raises(ValueError, match="STEELGUARD_AI_MODE"):
+        ai_service.run_inference(object())
 
 
 def test_ai_adapter_invoked_exactly_once_for_valid_request(

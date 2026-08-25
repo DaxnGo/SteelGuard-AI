@@ -156,7 +156,7 @@ accuracy claim or performance target.
 | `prediction.class_name` | string | Yes | One exact value from Section 4 |
 | `prediction.confidence` | number | Yes | Finite value from `0.0` through `1.0` |
 | `prediction.recommendation` | string | Yes | One exact value from Section 5 |
-| `prediction.gradcam_image` | string or null | Yes | `null` during dummy integration; non-empty representation selected under Section 7 for live inference |
+| `prediction.gradcam_image` | string or null | Yes | `null` during dummy integration; PNG data URI from the current model adapter |
 
 A `200 OK` response is valid only when every required field is present and
 valid. The backend must return an error rather than a partial prediction. The
@@ -251,11 +251,11 @@ precision shown in Section 3.
 ## 7. Grad-CAM Delivery Strategy
 
 `prediction.gradcam_image` remains a required field. It is `null` only during
-dummy integration; its final non-empty string representation needs confirmation
-before frontend and backend implementation are finalized.
+dummy integration. The current in-process model adapter emits a PNG data URI,
+and the frontend validates and renders that representation without persistence.
 
-> **TBD – Grad-CAM transport must be confirmed by the frontend and backend
-> teams.**
+> **Implementation status:** Option A is implemented for the local Docker MVP.
+> Formal D-05 sign-off is still required before target-environment activation.
 
 ### Option A: Base64-encoded image
 
@@ -305,10 +305,10 @@ Tradeoffs:
 - requires temporary storage or an in-memory artifact registry; and
 - requires expiry, cleanup, missing-resource, and optional CORS behavior.
 
-### MVP recommendation
+### Current MVP implementation
 
-**Recommend Option A: a PNG data URI containing base64-encoded bytes for the
-local Docker Compose MVP.** It is the simplest option for a single-image,
+**The adapter uses Option A: a PNG data URI containing base64-encoded bytes for
+the local Docker Compose MVP.** It is the simplest option for a single-image,
 single-result workflow because it avoids a second endpoint, generated-file
 storage, resource cleanup, and container-to-browser URL concerns. The expected
 size impact must still be checked with representative Grad-CAM output before

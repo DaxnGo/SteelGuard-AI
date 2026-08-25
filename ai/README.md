@@ -1,91 +1,79 @@
-# NEU-DET Steel Surface Defect Detection API
+# SteelGuard AI Inference Adapter
 
-Pipeline inferensi YOLOv8 untuk deteksi cacat permukaan baja. Mendukung 6 jenis cacat: **crazing**, **inclusion**, **patches**, **pitted_surface**, **rolled-in_scale**, **scratches**.
+The AI package is imported by the existing FastAPI backend. It is not a second
+HTTP service and does not expose another port.
 
-## Quick Start
+## Current artifact status
 
-```bash
-# Build & run
-docker compose up --build
+The supplied `best.pt` artifact is a provisional Ultralytics YOLO11n detection
+checkpoint with six labels. It is integrated so the team can test the complete
+technical path, but it is **not documented as the final selected model** because
+the repository does not include the dataset protocol, candidate comparison, or
+evaluation results required by D-01 and D-02.
 
-# API tersedia di http://localhost:8000
-# Dokumentasi Swagger di http://localhost:8000/docs
-```
+| Property | Recorded value |
+| --- | --- |
+| Task | Ultralytics detection |
+| Base architecture | YOLO11n |
+| Runtime | Ultralytics 8.4.127, PyTorch 2.12.1 CPU |
+| Input | RGB, aspect-ratio-preserving resize and padding to 640 × 640 |
+| Artifact size | 5,426,138 bytes |
+| SHA-256 | `f33543468e7020ac291fc424fafc3b40555b2e45e206182bfb1bab9d1fa9baaf` |
+| Artifact source/training run | Not supplied; AI owner follow-up required |
+| Accuracy/precision/recall/F1/mAP | Not supplied; must not be inferred |
 
-## API Endpoints
+The adapter verifies the sidecar checksum before loading the pickle-based model
+and validates the exact checkpoint label order.
 
-### `GET /health`
-Health check — status API dan model.
+## Inference contract
 
-```bash
-curl http://localhost:8000/health
-```
+`ai.inference.run_inference(image)` returns one complete backend-adapter result:
 
-### `POST /predict`
-Deteksi cacat pada gambar. Mengembalikan JSON dengan bounding box, kelas, dan confidence.
-
-```bash
-curl -X POST http://localhost:8000/predict \
-  -F "file=@path/to/image.jpg"
-```
-
-**Response:**
-```json
+```python
 {
-  "success": true,
-  "detections": [
-    {
-      "class_id": 5,
-      "class_name": "scratches",
-      "confidence": 0.92,
-      "bbox": {
-        "x_min": 10.5,
-        "y_min": 20.3,
-        "x_max": 180.0,
-        "y_max": 190.7
-      }
-    }
-  ],
-  "count": 1,
-  "inference_time_ms": 45.2,
-  "image_width": 200,
-  "image_height": 200
+    "class_name": "Scratches",
+    "confidence": 0.942,
+    "recommendation": "REWORK",
+    "gradcam_image": "data:image/png;base64,...",
 }
 ```
 
-### `POST /predict/annotated`
-Deteksi cacat dan mengembalikan gambar dengan bounding box yang digambar.
+The provisional detector is adapted to the product's single-result contract by
+selecting the highest class score from one forward pass. The same selected score
+is backpropagated through the shared C2PSA feature layer to generate Grad-CAM.
+The aligned overlay is returned as an in-memory PNG data URI; no uploads or
+generated images are persisted.
 
-```bash
-curl -X POST http://localhost:8000/predict/annotated \
-  -F "file=@path/to/image.jpg" \
-  --output result.jpg
+## Required model-mode configuration
+
+The backend defaults to the safe Phase 2 dummy adapter. Real inference is used
+only when explicitly configured:
+
+```env
+STEELGUARD_AI_MODE=model
+STEELGUARD_MODEL_PATH=/app/ai/best.pt
+STEELGUARD_CONFIDENCE_THRESHOLD=0.25
+STEELGUARD_RECOMMENDATION_MAP_JSON={...all six exact API labels...}
 ```
 
-## Environment Variables
+`STEELGUARD_RECOMMENDATION_MAP_JSON` has no default. D-03 requires the quality
+owner to approve every `ACCEPT`, `REWORK`, or `REJECT` value. Missing or invalid
+model-mode configuration fails startup and never falls back to dummy output.
 
-| Variable | Default | Description |
-|---|---|---|
-| `MODEL_PATH` | `/app/model/best.pt` | Path ke model YOLOv8 |
-| `CONF_THRESHOLD` | `0.25` | Minimum confidence score |
-| `IOU_THRESHOLD` | `0.45` | IoU threshold untuk NMS |
+## Tests
 
-## Project Structure
+Fast unit tests run without the heavy model runtime:
 
-```
-.
-├── app/
-│   ├── __init__.py
-│   ├── main.py          # FastAPI endpoints
-│   ├── inference.py     # YOLOv8 model engine
-│   └── schemas.py       # Pydantic response models
-├── best.pt              # Trained YOLOv8 model
-├── Dockerfile
-├── docker-compose.yml
-├── requirements.txt
-└── README.md
+```powershell
+python -m pytest ai/tests -q
 ```
 
-## Supported Image Formats
+`test_model_smoke.py` automatically exercises the bundled model and Grad-CAM
+when Ultralytics is installed, including inside the backend Docker image.
 
-JPEG, PNG, BMP, TIFF
+## Remaining AI evidence
+
+- Resolve dataset provenance, split, preprocessing, and augmentation under D-01.
+- Record candidate-model evaluation and approve the final architecture under D-02.
+- Approve the recommendation mapping under D-03.
+- Rehearse the provisional CPU artifact on the approved demo hardware under D-06.

@@ -1,10 +1,20 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.routes import predict
+from app.services.ai_service import initialize_ai
 
-app = FastAPI(title="SteelGuard AI Backend")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    initialize_ai()
+    yield
+
+
+app = FastAPI(title="SteelGuard AI Backend", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

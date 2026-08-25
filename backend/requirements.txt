@@ -5,3 +5,7 @@ pydantic
 pillow
 pytest
 httpx
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.12.1+cpu
+torchvision==0.27.1+cpu
+ultralytics==8.4.127
