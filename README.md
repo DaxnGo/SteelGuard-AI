@@ -101,6 +101,27 @@ The frontend is exposed at <http://localhost:8501> and the backend at
 default while keeping the backend AI adapter in safe dummy mode. Backend
 dummy/model selection is configured separately.
 
+### Run the competition demo with the bundled model
+
+Set the explicit model-mode configuration before starting Compose:
+
+```powershell
+$env:STEELGUARD_AI_MODE = "model"
+$env:STEELGUARD_MODEL_PATH = "/app/ai/best.pt"
+$env:STEELGUARD_CONFIDENCE_THRESHOLD = "0.25"
+$env:STEELGUARD_RECOMMENDATION_MAP_JSON = '{"Crazing":"REJECT","Inclusion":"REJECT","Patches":"REWORK","Pitted Surface":"REJECT","Rolled-in Scale":"REWORK","Scratches":"REWORK"}'
+$env:STEELGUARD_USE_MOCK_API = "false"
+docker compose up --build
+```
+
+Then open <http://localhost:8501>. The bundled checkpoint is an existing
+YOLO11n artifact supplied to the project and integrated and adapted during the
+competition through checksum verification, fixed preprocessing and label
+contracts, same-pass Grad-CAM, and the backend/frontend workflow. It is not
+claimed as a checkpoint trained by this team during the competition. Its
+original training run and final held-out evaluation metrics were not supplied,
+so the repository identifies it as provisional instead of inventing evidence.
+
 ## Repository layout
 
 ```text
