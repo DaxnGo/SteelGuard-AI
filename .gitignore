@@ -35,6 +35,13 @@ Thumbs.db
 uploads/
 outputs/
 generated/
+dataset/
+datasets/
+ai/data/
+ai/runs/
+runs/
+wandb/
+*.cache
 *.log
 
 # Large model artifacts belong in managed artifact storage
