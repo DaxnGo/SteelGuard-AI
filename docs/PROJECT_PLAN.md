@@ -38,11 +38,12 @@ provisional model integration:
 - product, architecture, UI, and development documentation.
 
 The provisional adapter and PNG data-URI transport are implemented. Dataset and
-model-selection evidence, the domain-approved recommendation policy, final live
-HTTP settings, Grad-CAM transport sign-off, and deployment assumptions remain
-open decisions. The preliminary MVP is successful when an operator can select
-one supported image, run one inference, view all four backend-supplied outputs,
-recover from errors, and reset the interface for a new independent image.
+model-selection evidence, final live HTTP settings, Grad-CAM transport sign-off,
+and deployment assumptions remain open decisions. D-03 now has a conservative
+demo-only recommendation policy. The preliminary MVP is successful when an
+operator can select one supported image, run one inference, view all four
+backend-supplied outputs, recover from errors, and reset the interface for a new
+independent image.
 
 ### Decision register
 
@@ -54,7 +55,7 @@ silently choose a value or policy.
 | --- | --- | --- | --- |
 | D-01 | Confirm dataset provenance and redistribution terms, split protocol, random seed, input dimensions, color handling, normalization, and training augmentation | AI lead | AI baseline training |
 | D-02 | Select the deep-learning framework, pretrained-weight policy, final model-selection criteria, and measurable acceptance targets | AI lead and project lead | Final model selection |
-| D-03 | Approve the business rules that map model output to `ACCEPT`, `REWORK`, or `REJECT` | Quality/domain owner | Backend–AI integration |
+| D-03 (resolved 2026-08-25) | Use the documented conservative class mapping as competition MVP decision support only | Project lead | Backend–AI integration |
 | D-04 | Set the maximum upload size and frontend/backend connection and inference timeouts | Backend and frontend leads | API integration |
 | D-05 | Confirm base64 data URI or image-reference Grad-CAM transport; if a reference is selected, define lifetime and cleanup | Frontend and backend leads | API integration |
 | D-06 | Confirm model artifact distribution, supported demo hardware, deployment target, ASGI runtime, and deployed CORS origins | Technical lead | Container integration |
@@ -146,7 +147,7 @@ The preliminary MVP is intended to demonstrate qualitative value through:
 - more consistent image assessment from a fixed, versioned model;
 - quicker presentation of classification feedback after an image is supplied;
 - visible model evidence through Grad-CAM to support review and discussion;
-- a clear recommendation display once domain-approved rules exist;
+- a clear recommendation display using the recorded demo-only rules;
 - reproducible demonstrations across team environments through containers;
   and
 - a modular foundation that can be evaluated before broader factory
@@ -180,8 +181,8 @@ or pilot.
 - Return one of the six exact class labels.
 - Return one finite confidence value in the inclusive range `0.0` to `1.0`.
 - Return one Grad-CAM representation generated for the same inference.
-- Return one recommendation from `ACCEPT`, `REWORK`, or `REJECT` after D-03 is
-  approved.
+- Return one recommendation from `ACCEPT`, `REWORK`, or `REJECT` using the
+  recorded D-03 competition MVP policy.
 - Display all output values from the same validated backend response.
 
 ### Operational scope
@@ -438,15 +439,15 @@ The adapter must:
   required;
 - generate Grad-CAM from the same inference and align its visualization with
   the submitted image;
-- return one domain-approved recommendation; and
+- return one configured recommendation from the recorded demo mapping; and
 - raise explicit, testable failures for invalid input, missing artifacts,
   inference errors, and explanation errors.
 
-> **Decision required D-03:** The project output classes identify defect
-> categories, but they do not by themselves define manufacturing disposition.
-> A quality/domain owner must approve the recommendation rules and any use of
-> class, confidence, or other evidence before `ACCEPT`, `REWORK`, or `REJECT`
-> is enabled in live inference.
+> **D-03 demo decision:** `Crazing`, `Inclusion`, and `Pitted Surface` map to
+> `REJECT`; `Patches`, `Rolled-in Scale`, and `Scratches` map to `REWORK`.
+> No class maps to `ACCEPT` because the model has no normal/no-defect class.
+> This static mapping supports the competition demo only and is not a production
+> manufacturing disposition standard.
 
 ## 16. Integration Strategy
 
@@ -678,7 +679,7 @@ accepted, but end-to-end integration depends on all three boundaries.
 | 1. Frontend MVP | Complete | Frontend | Upload, preview, Analyze, loading/error/success, mock result, Grad-CAM placeholder, retry, reset | Full state flow passes against the approved fixture; no AI output is derived in the frontend |
 | 2. Backend API | Complete with dummy and provisional model modes | Backend | FastAPI request validation, prediction endpoint, adapter selection, errors, container | API and negative-path tests conform to the contract; model mode fails closed on invalid configuration |
 | 3. AI baseline and selection | Provisional adapter implemented; evidence pending | AI | Reproducible dataset protocol, candidate comparison, selected artifact, Grad-CAM, adapter | D-01 through D-03 are resolved; artifact evidence and adapter tests are complete |
-| 4. Integration | Real path implemented behind explicit configuration | Shared | Streamlit → FastAPI path, live HTTP failure handling, in-process AI, and two-service Compose | Approved D-03/D-04 values, D-05 sign-off, and final model evidence remain before full MVP acceptance |
+| 4. Integration | Real path implemented behind explicit configuration | Shared | Streamlit → FastAPI path, live HTTP failure handling, in-process AI, and two-service Compose | Approved D-04 values, D-05 sign-off, and final model evidence remain before full MVP acceptance |
 | 5. Demo hardening | In progress | Shared | Recovery behavior, operator guidance, reproducibility evidence, rehearsal | Clean-machine Docker rehearsal and Definition of Done review pass after final decisions and model evidence |
 
 > **Decision required D-07:** Assign people and target dates after team capacity
@@ -693,7 +694,7 @@ accepted, but end-to-end integration depends on all three boundaries.
 | Dataset-to-factory domain shift | Demonstration results may not generalize to production images | State limitations, test representative external images only when authorized, require a future site-specific pilot |
 | Data leakage or overfitting | Misleading evaluation | Freeze deterministic partitions, check duplicates/related images, isolate held-out data, record experiment provenance |
 | Visually similar classes | Unstable per-class behavior | Review confusion matrix and per-class metrics, inspect errors, avoid relying on aggregate metrics alone |
-| Undefined recommendation semantics | Unsafe or arbitrary disposition advice | Resolve D-03 with a quality/domain owner; never infer rules in frontend or transport code |
+| Demo mapping mistaken for a production standard | Unsafe or unsupported disposition advice | Label it as competition decision support and require a future site-specific quality standard before production use |
 | Misinterpreted confidence | Operators may treat a score as certainty | Document its calculation and calibration evidence; label it clearly; do not invent thresholds |
 | Misinterpreted Grad-CAM | Heatmap may be treated as a defect boundary or proof | Label it as model explanation, test alignment, document limitations, never call it segmentation |
 | Model artifact or label-map mismatch | Incorrect classifications or startup failure | Version and checksum artifacts, validate label maps, fail fast at startup, test packaged deployment |

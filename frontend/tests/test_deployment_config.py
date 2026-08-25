@@ -36,6 +36,7 @@ class DeploymentConfigTests(unittest.TestCase):
             "STEELGUARD_API_CONNECT_TIMEOUT_SECONDS=2",
             "STEELGUARD_API_READ_TIMEOUT_SECONDS=30",
             "STEELGUARD_MAX_UPLOAD_BYTES=1048576",
+            'STEELGUARD_RECOMMENDATION_MAP_JSON={"Crazing":"REJECT","Inclusion":"REJECT","Patches":"REWORK","Pitted Surface":"REJECT","Rolled-in Scale":"REWORK","Scratches":"REWORK"}',
         ):
             self.assertIn(setting, example_env)
 

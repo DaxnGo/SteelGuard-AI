@@ -53,7 +53,7 @@ def map_model_class(model_name: str) -> str:
 def load_recommendation_map(
     environ: Mapping[str, str] | None = None,
 ) -> dict[str, str]:
-    """Load the domain-approved class-to-recommendation mapping."""
+    """Load the configured class-to-recommendation mapping."""
 
     values = os.environ if environ is None else environ
     raw_mapping = values.get(RECOMMENDATION_MAP_ENV)

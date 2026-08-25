@@ -310,3 +310,15 @@ inspection-event log and must never contain user images or predictions.
   competition-out-of-scope feature was added.
 - Final model-mode rehearsal and Proof of Work recording remain separate AI
   integration tasks after the competition-period checkpoint is available.
+
+## 2026-08-25 — D-03 competition demo recommendation policy
+
+**Status:** Demo-only mapping approved by the project lead
+
+- `Crazing`, `Inclusion`, and `Pitted Surface` map to `REJECT`.
+- `Patches`, `Rolled-in Scale`, and `Scratches` map to `REWORK`.
+- No defect class maps to `ACCEPT` because the six-class model has no
+  normal/no-defect class.
+- The mapping is static decision support for the competition MVP. It is not a
+  production disposition standard and must be replaced or re-approved against
+  site-specific quality requirements before production use.

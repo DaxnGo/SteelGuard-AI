@@ -70,7 +70,7 @@ docker run -p 8000:8000 steelguard-backend
 ```
 
 The container uses pinned CPU-only PyTorch wheels. Set `STEELGUARD_AI_MODE=model`
-only with a complete domain-approved `STEELGUARD_RECOMMENDATION_MAP_JSON`;
+only with the complete recorded demo `STEELGUARD_RECOMMENDATION_MAP_JSON`;
 invalid live configuration fails startup rather than falling back to dummy data.
 
 The backend enables CORS for the local Streamlit origin at

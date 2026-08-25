@@ -38,7 +38,8 @@ backend.
 - Phase 2 FE-to-dummy-BE `POST /predict` integration is reproducibly smoke-tested
   with `python scripts/phase2_smoke_test.py`.
 - Live Grad-CAM generation is implemented using the recommended PNG data-URI
-  transport; D-03 recommendation approval and final model evidence remain open.
+  transport; the demo recommendation policy is recorded, while final model
+  evidence remains open.
 - Docker Compose defines healthy backend and frontend services with adopted
   demo values of a 1 MiB upload limit and 2/30-second connect/read timeouts.
 

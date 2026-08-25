@@ -219,13 +219,21 @@ contract change.
 - `REWORK`
 - `REJECT`
 
-> **TBD – recommendation logic must be defined by AI/backend/product team.**
+The competition MVP uses this conservative static decision-support policy:
 
-This contract defines only the transport enum. It does not define which class,
-confidence, severity, threshold, or other condition produces a recommendation.
-No frontend lookup table, confidence threshold, or fallback rule may be used to
-derive it. The algorithm must be agreed, documented, and tested before a live
-backend returns recommendation values.
+| Class | Recommendation |
+| --- | --- |
+| `Crazing` | `REJECT` |
+| `Inclusion` | `REJECT` |
+| `Patches` | `REWORK` |
+| `Pitted Surface` | `REJECT` |
+| `Rolled-in Scale` | `REWORK` |
+| `Scratches` | `REWORK` |
+
+No class maps to `ACCEPT` because the model has only defect classes and no
+normal/no-defect class. The mapping is demo decision support, not a production
+disposition standard. It is supplied to the AI adapter through
+`STEELGUARD_RECOMMENDATION_MAP_JSON`; the frontend must not derive or replace it.
 
 ## 6. Confidence Format
 
@@ -467,11 +475,10 @@ The backend must:
 - never delegate classification, confidence, Grad-CAM generation, or
   recommendation logic to the frontend.
 
-> **TBD – recommendation logic must be defined by AI/backend/product team.**
-
-Until that decision is approved, backend test doubles may return contract-valid
-recommendation fixtures for integration testing, but those fixtures must be
-clearly identified and must not be represented as live decision logic.
+The live adapter uses the approved competition MVP mapping in section 5.
+Backend test doubles may still return other contract-valid recommendation
+fixtures for integration testing, but those fixtures must be clearly identified
+and must not be represented as live decision logic.
 
 ## 14. Frontend Responsibilities
 

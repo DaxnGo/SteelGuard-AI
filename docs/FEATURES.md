@@ -31,7 +31,7 @@ Upload ONE steel image
 | Generated Grad-CAM output | Provisional PNG data URI available | AI and backend |
 | Honest Grad-CAM placeholder | Available | Frontend |
 | Recommendation presentation | Available | Frontend |
-| Recommendation logic | Configuration-gated; D-03 approval pending | AI, backend, and product |
+| Recommendation logic | Demo policy approved; configuration-gated | AI, backend, and product |
 | Recoverable error, retry, and reset states | Available | Frontend |
 | Contract-shaped mock response | Available | Shared |
 

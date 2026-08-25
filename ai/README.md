@@ -53,12 +53,13 @@ only when explicitly configured:
 STEELGUARD_AI_MODE=model
 STEELGUARD_MODEL_PATH=/app/ai/best.pt
 STEELGUARD_CONFIDENCE_THRESHOLD=0.25
-STEELGUARD_RECOMMENDATION_MAP_JSON={...all six exact API labels...}
+STEELGUARD_RECOMMENDATION_MAP_JSON={"Crazing":"REJECT","Inclusion":"REJECT","Patches":"REWORK","Pitted Surface":"REJECT","Rolled-in Scale":"REWORK","Scratches":"REWORK"}
 ```
 
-`STEELGUARD_RECOMMENDATION_MAP_JSON` has no default. D-03 requires the quality
-owner to approve every `ACCEPT`, `REWORK`, or `REJECT` value. Missing or invalid
-model-mode configuration fails startup and never falls back to dummy output.
+`STEELGUARD_RECOMMENDATION_MAP_JSON` has no code default. The value above is the
+approved competition MVP decision-support policy, not a production disposition
+rule. Missing or invalid model-mode configuration fails startup and never falls
+back to dummy output.
 
 ## Tests
 
@@ -75,5 +76,4 @@ when Ultralytics is installed, including inside the backend Docker image.
 
 - Resolve dataset provenance, split, preprocessing, and augmentation under D-01.
 - Record candidate-model evaluation and approve the final architecture under D-02.
-- Approve the recommendation mapping under D-03.
 - Rehearse the provisional CPU artifact on the approved demo hardware under D-06.

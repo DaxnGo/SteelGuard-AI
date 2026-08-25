@@ -128,7 +128,21 @@ Percentage conversion, if needed, is performed by the frontend.
 
 No other value, casing, or synonym is permitted.
 
-Recommendation logic (the rule that maps model output to one of these three values) is not yet finalized. During Phase 1, the dummy `/predict` endpoint always returns `REWORK` for integration testing purposes only.
+The competition MVP uses this conservative static decision-support policy:
+
+| Class | Recommendation |
+| --- | --- |
+| `Crazing` | `REJECT` |
+| `Inclusion` | `REJECT` |
+| `Patches` | `REWORK` |
+| `Pitted Surface` | `REJECT` |
+| `Rolled-in Scale` | `REWORK` |
+| `Scratches` | `REWORK` |
+
+No class maps to `ACCEPT` because the model has only defect classes and no
+normal/no-defect class. This is a demo policy, not a production disposition
+standard. The dummy `/predict` endpoint still returns `REWORK` only as an
+integration fixture.
 
 ---
 

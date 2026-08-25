@@ -89,7 +89,7 @@ real `GET /health` and `POST /predict` requests. The model path has also passed
 the complete Streamlit upload, Analyze, result, Grad-CAM, and reset workflow in
 Docker Compose. The frontend accepts Grad-CAM as a PNG data URI, which is the
 adopted transport for the local MVP. Final model acceptance still requires the
-AI evidence and quality-owner recommendation mapping.
+AI evidence; the frontend already accepts the recorded demo recommendation map.
 
 ## Prepared error mapping
 

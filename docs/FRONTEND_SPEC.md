@@ -4,7 +4,7 @@
 >
 > **Frontend:** Python, Streamlit, Requests, Pillow, and custom CSS
 >
-> **Repository status:** The frontend MVP, configurable live client, shared upload-limit enforcement, full dummy FastAPI smoke flow, live HTTP error tests, and provisional model/Grad-CAM UI flow are implemented. Final D-03 through D-06 approvals and model evidence remain pending.
+> **Repository status:** The frontend MVP, configurable live client, shared upload-limit enforcement, full dummy FastAPI smoke flow, live HTTP error tests, and provisional model/Grad-CAM UI flow are implemented. D-03 has a demo-only policy; final D-04 through D-06 approvals and model evidence remain pending.
 
 The frontend is a presentation client. It owns user interaction, current-page
 state, HTTP orchestration, and display of backend AI results. It does not own
